@@ -1,0 +1,8 @@
+#
+.venv/
+.vscode/
+.git/
+
+#
+data/raw/
+.env

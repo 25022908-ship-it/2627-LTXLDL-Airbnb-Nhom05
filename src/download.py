@@ -28,11 +28,11 @@ def download_data(config):
                 continue
             print(f"    + Đang tải : {file} tại {snapshot}")
             try:
-                reponse = requests.get(url,timeout=20)
-                reponse.raise_for_status()
+                response = requests.get(url,timeout=20)
+                response.raise_for_status()
                 with open(file_path,"wb") as f:
-                    f.write(reponse.content)
-            except requests.exceptions.RequestException() as e:
+                    f.write(response.content)
+            except requests.exceptions.RequestException as e:
                 print(f"  [!] Lỗi khi tải {file}: {e}")
 
 if __name__ == "__main__":

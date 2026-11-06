@@ -33,7 +33,6 @@ def filter_listing(raw_path,out_path,listing_df):
     if "analysis_area" in df_l.columns:
         df_l = df_l.drop(columns=["analysis_area"])
         
-    # Ghép bảng bằng left_on="id" và right_on="listing_id"
     df_l = df_l.merge(
         listing_df[["listing_id", "analysis_area"]],
         left_on="id",
@@ -65,7 +64,7 @@ def filter_review(raw_path,out_path,review_df):
         right_on="review_id",
         how="left",
         validate="one_to_one"
-    ).drop(columns=["review_id"]) # Bỏ cột review_id phụ để giữ nguyên cột 'id' và 'listing_id' gốc
+    ).drop(columns=["review_id"]) # Bỏ cột review_id phụ , giữ nguyên cột 'id' và 'listing_id' gốc
     
     df_r.to_parquet(out_path, index=False)
     print(f"    -> Reviews : {len(df_r)} dòng, {df_r.shape[1]} cột.")
@@ -89,7 +88,7 @@ def filter_calendar(raw_path,out_path,valid_listing_ids,chunksize = 500000):
         
     df_c = pd.concat(filtered_chunks, ignore_index=True)
     df_c.to_parquet(out_path, index=False)
-    print(f"    -> Calendar: {len(df_c)} dòng, {df_c.shape[1]} cột (Đã đọc bằng chunksize).")
+    print(f"    -> Calendar: {len(df_c)} dòng, {df_c.shape[1]} cột.")
 
 def run_filter(config_path="configs/vienna.yaml"):
     print("--- BẮT ĐẦU LỌC DỮ LIỆU THEO PHÂN CÔNG ---")

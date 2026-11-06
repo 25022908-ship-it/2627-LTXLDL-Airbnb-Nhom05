@@ -1,9 +1,8 @@
 import requests
-import time
 import yaml
 from pathlib import Path
 
-def load_config(config_path):
+def load_config(config_path = "configs/vienna.yaml") -> dict:
     with open(config_path,"r",encoding="utf-8") as f:
         return yaml.safe_load(f)
 
@@ -36,6 +35,6 @@ def download_data(config):
                 print(f"  [!] Lỗi khi tải {file}: {e}")
 
 if __name__ == "__main__":
-    config_data = load_config("configs/vienna.yaml")
+    config_data = load_config()
     download_data(config_data)
     print("\nHoàn tất quá trình tải dữ liệu!")

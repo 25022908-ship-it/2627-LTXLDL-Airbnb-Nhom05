@@ -1,16 +1,61 @@
+import json
+import argparse
+import sys
 import requests
 import yaml
+import pandas as pd
 from pathlib import Path
+
+BASE_URL = "https://data.insideairbnb.com"
+GEOJSON_FILE = "neighbourhoods.geojson"
+
+# Cột khoá tối thiểu mà mỗi tệp .csv.gz phải có (dùng để kiểm tra toàn vẹn sau khi tải)
+REQUIRED_COLUMNS = {
+    "listings.csv.gz": ["id"],
+    "calendar.csv.gz": ["listing_id", "date", "available"],
+    "reviews.csv.gz": ["id", "listing_id", "date", "comments"],
+}
 
 def load_config(config_path = "configs/vienna.yaml") -> dict:
     with open(config_path,"r",encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-def download_data(config):
-    base_url = "https://data.insideairbnb.com"
+def build_url(data_root: str, snapshot: object, file: str) -> str:
+    """geojson nằm trong thư mục visualisations, các bảng csv.gz nằm trong data."""
+    folder = "visualisations" if file == GEOJSON_FILE else "data"
+    return f"{BASE_URL}/{data_root}/{snapshot}/{folder}/{file}"
+
+def is_valid_file(file_path: Path) -> bool:
+    """Tệp đọc được và có đủ cột khoá (csv.gz) hoặc có khoá 'features' (geojson)."""
+    try:
+        if file_path.name == GEOJSON_FILE:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return "features" in json.load(f)
+        header = pd.read_csv(file_path, compression="gzip", nrows=0)
+        return set(REQUIRED_COLUMNS[file_path.name]).issubset(header.columns)
+    except Exception:
+        return False
+
+def download_file(url: str, file_path: Path) -> None:
+    """Tải dạng stream vào tệp .part rồi mới đổi tên, tránh để lại tệp ghi dở."""
+    tmp_path = file_path.with_name(file_path.name + ".part")
+    try:
+        with requests.get(url, stream=True, timeout=60) as response:
+            response.raise_for_status()
+            with open(tmp_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=1 << 20):
+                    f.write(chunk)
+        tmp_path.replace(file_path)
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
+
+def download_data(config) -> list[str]:
+    """Tải đủ các tệp của mọi mốc; trả về danh sách tệp lỗi (rỗng nếu thành công)."""
     data_root = config["data_root"]
     snapshots = config["snapshots"]
-    files = ["listings.csv.gz", "calendar.csv.gz", "reviews.csv.gz"]
+    files = list(REQUIRED_COLUMNS) + [GEOJSON_FILE]
+    failed: list[str] = []
 
     raw_dir = Path("data/raw")
     raw_dir.mkdir(parents=True,exist_ok=True)
@@ -20,21 +65,34 @@ def download_data(config):
         snapshot_dir = raw_dir/str(snapshot)
         snapshot_dir.mkdir(parents=True,exist_ok=True)
         for file in files:
-            url = f"{base_url}/{data_root}/{snapshot}/data/{file}"
-            file_path = snapshot_dir/file 
-            if(file_path.exists()):
-                print(f"    + Đã tồn tại file {file} tại {snapshot}, bỏ qua")
-                continue
+            url = build_url(data_root, snapshot, file)
+            file_path = snapshot_dir/file
+            if file_path.exists():
+                if is_valid_file(file_path):
+                    print(f"    + Đã tồn tại file {file} tại {snapshot}, bỏ qua")
+                    continue
+                print(f"    + File {file} tại {snapshot} bị hỏng/thiếu cột khoá, tải lại")
+                file_path.unlink()
             print(f"    + Đang tải : {file} tại {snapshot}")
             try:
-                response = requests.get(url,timeout=20)
-                response.raise_for_status()
-                with open(file_path,"wb") as f:
-                    f.write(response.content)
-            except requests.exceptions.RequestException as e:
+                download_file(url, file_path)
+            except (requests.exceptions.RequestException, OSError) as e:
                 print(f"  [!] Lỗi khi tải {file}: {e}")
+                failed.append(f"{snapshot}/{file}")
+                continue
+            if not is_valid_file(file_path):
+                print(f"  [!] File {file} tại {snapshot} tải về nhưng không hợp lệ (thiếu cột khoá?)")
+                file_path.unlink()
+                failed.append(f"{snapshot}/{file}")
+    return failed
 
 if __name__ == "__main__":
-    config_data = load_config()
-    download_data(config_data)
+    parser = argparse.ArgumentParser(description="Tải dữ liệu Inside Airbnb theo config")
+    parser.add_argument("--config", default="configs/vienna.yaml", help="Đường dẫn tệp cấu hình YAML")
+    args = parser.parse_args()
+
+    failed_files = download_data(load_config(args.config))
+    if failed_files:
+        print(f"\n[!] Các tệp tải lỗi: {failed_files}")
+        sys.exit(1)
     print("\nHoàn tất quá trình tải dữ liệu!")

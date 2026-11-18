@@ -2,6 +2,34 @@ import pandas as pd
 import yaml
 from pathlib import Path
 
+# Mô tả từng quy tắc QA: (điều kiện, lý do, hành động) -> xuất vào reports/qa_report.csv
+RULE_DOCS: dict[str, tuple[str, str, str]] = {
+    "flag_thieu_gia": ("price bị trống", "Không tính được KPI giá", "Gắn cờ; loại khỏi KPI giá"),
+    "flag_sai_kieu_gia": ("price có giá trị nhưng không ép được sang số", "Chuỗi giá sai định dạng", "Gắn cờ; loại khỏi KPI giá"),
+    "flag_gia_ngoai_lai": ("price_num <= 0 hoặc > price_max_eur", "Giá vô lý làm lệch trung bình", "Gắn cờ; loại khỏi KPI giá"),
+    "flag_dem_ngoai_lai": ("minimum_nights <= 0 hoặc > min_nights_cap", "Số đêm tối thiểu phi thực tế", "Gắn cờ; loại khỏi KPI"),
+    "flag_ngoai_toa_do": ("Tọa độ thiếu hoặc nằm ngoài khung địa lý Vienna", "Vị trí sai/không đáng tin", "Gắn cờ; loại khỏi KPI"),
+    "flag_sai_suc_chua": ("accommodates <= 0 hoặc > 50; bedrooms < 0 hoặc > 20", "Sức chứa phi logic", "Gắn cờ; loại khỏi KPI"),
+    "flag_sai_logic_review": ("Điểm ngoài [0,5] hoặc có điểm khi number_of_reviews = 0", "Mâu thuẫn dữ liệu đánh giá", "Gắn cờ; loại khỏi KPI"),
+    "flag_sai_thong_tin_host": ("Thiếu host_id hoặc calculated_host_listings_count < 1", "Không xác định được chủ nhà", "Gắn cờ; loại khỏi KPI"),
+    "flag_trung_id": ("Trùng khóa định danh (dedupe_keys trong config; id với reviews)", "Đếm lặp một đối tượng", "Gắn cờ; loại khỏi KPI"),
+    "flag_lech_loai_phong": ("room_type ngoài 4 loại chuẩn", "Danh mục lệch", "Gắn cờ; loại khỏi KPI"),
+    "flag_lech_vung": ("analysis_area ngoài A01-A08 hoặc thiếu neighbourhood_cleansed", "Không gán được vùng phân tích", "Gắn cờ; loại khỏi KPI"),
+    "flag_lech_id_giua_cac_moc": ("id không có ở mốc đầu tiên", "Listing mới xuất hiện sau mốc đầu (không phải lỗi)", "Chỉ ghi nhận, KHÔNG loại khỏi KPI"),
+    "flag_thieu_available": ("available bị trống", "Không biết ngày trống hay đã khóa", "Gắn cờ; loại khỏi KPI"),
+    "flag_sai_kieu_ngay": ("Cột ngày có dữ liệu nhưng không ép được sang datetime", "Ngày sai định dạng", "Gắn cờ; loại khỏi KPI"),
+    "flag_sai_logic_dem": ("minimum_nights <= 0 hoặc > maximum_nights", "Ràng buộc số đêm phi logic", "Gắn cờ; loại khỏi KPI"),
+    "flag_trung_ngay_phong": ("Trùng (listing_id, date)", "Một ngày bị đếm nhiều lần", "Gắn cờ; loại khỏi KPI"),
+    "flag_lech_available": ("available ngoài {t, f}", "Danh mục lệch", "Gắn cờ; loại khỏi KPI"),
+    "flag_thieu_noi_dung": ("comments trống", "Không có văn bản để phân tích", "Gắn cờ; loại khỏi mẫu LLM/baseline"),
+    "flag_ngay_tuong_lai": ("Ngày review sau ngày chụp dữ liệu", "Ngày không thể xảy ra", "Gắn cờ; loại khỏi KPI"),
+    "flag_review_tu_dong": ("comments chứa thông báo tự động của Airbnb (EN: 'automated posting')", "Không phải đánh giá của khách, làm lệch cảm xúc", "Gắn cờ; loại khỏi mẫu LLM/baseline"),
+    "flag_lech_review_giua_cac_moc": ("Cùng review id nhưng listing_id khác với mốc đầu", "Dữ liệu không nhất quán giữa các mốc", "Chỉ ghi nhận, KHÔNG loại khỏi KPI"),
+}
+
+# Biểu thức nhận diện review tự sinh. Hiện mới có tiếng Anh; bổ sung biến thể ngôn ngữ khác sau khi rà dữ liệu thật.
+AUTO_REVIEW_PATTERN = r"automated posting"
+
 def load_config(config_path = "configs/vienna.yaml") -> dict:
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
@@ -120,9 +148,26 @@ def check_invalid_category(df: pd.DataFrame, col: str, valid_values: list | set)
         return empty_mask(df)
     return ~df[col].isin(valid_values)
 
+def check_auto_generated_review(df: pd.DataFrame) -> pd.Series:
+    """Bắt review do Airbnb tự sinh (vd: thông báo chủ nhà hủy đặt phòng), không phải ý kiến của khách."""
+    if "comments" not in df.columns:
+        return empty_mask(df)
+    return df["comments"].fillna("").astype(str).str.contains(AUTO_REVIEW_PATTERN, case=False, regex=True)
+
+def check_review_listing_shift(df: pd.DataFrame, base_reviews: dict | None) -> pd.Series:
+    """Bắt review cùng id nhưng gắn listing_id khác so với mốc đầu (không nhất quán giữa các mốc)."""
+    if not base_reviews or not {"id", "listing_id"}.issubset(df.columns):
+        return empty_mask(df)
+    shifted = [
+        (rid in base_reviews and base_reviews[rid] != lid)
+        for rid, lid in zip(df["id"], df["listing_id"])
+    ]
+    return pd.Series(shifted, index=df.index, dtype=bool)
+
 def build_listings_rules(df: pd.DataFrame, qa_cfg: dict, base_ids: set | None = None) -> dict[str, pd.Series]:
     price_max = float(qa_cfg.get("price_max_eur", 5000))
     min_nights_cap = float(qa_cfg.get("min_nights_cap", 365))
+    dedupe_keys = qa_cfg.get("dedupe_keys", ["id"])
     valid_rooms = ["Entire home/apt", "Private room", "Shared room", "Hotel room"]
     valid_areas = [f"A0{i}" for i in range(1, 9)]
 
@@ -135,7 +180,7 @@ def build_listings_rules(df: pd.DataFrame, qa_cfg: dict, base_ids: set | None = 
         "flag_sai_suc_chua": check_capacity_logic(df),
         "flag_sai_logic_review": check_review_score_logic(df),
         "flag_sai_thong_tin_host": check_host_logic(df),
-        "flag_trung_id": check_duplicates(df, ["id"]),
+        "flag_trung_id": check_duplicates(df, dedupe_keys),
         "flag_lech_loai_phong": check_invalid_category(df, "room_type", valid_rooms),
         "flag_lech_vung": check_invalid_category(df, "analysis_area", valid_areas) | check_missing_col(df, "neighbourhood_cleansed"),
     }
@@ -154,26 +199,31 @@ def build_calendar_rules(df: pd.DataFrame) -> dict[str, pd.Series]:
         "flag_lech_available": check_invalid_category(df, "available", ["t", "f"]),
     }
 
-def build_reviews_rules(df: pd.DataFrame, snapshot_str: str) -> dict[str, pd.Series]:
+def build_reviews_rules(df: pd.DataFrame, snapshot_str: str, base_reviews: dict | None = None) -> dict[str, pd.Series]:
     return {
         "flag_thieu_noi_dung": check_missing_text(df, "comments"),
         "flag_sai_kieu_ngay": check_wrong_type_after_parse(df, "date", "date_clean"),
         "flag_ngay_tuong_lai": check_future_date(df, "date_clean", snapshot_str),
         "flag_trung_id": check_duplicates(df, ["id"]),
+        "flag_review_tu_dong": check_auto_generated_review(df),
+        "flag_lech_review_giua_cac_moc": check_review_listing_shift(df, base_reviews),
     }
 
-def attach_qa_flags(df: pd.DataFrame, rules: dict[str, pd.Series], price_flags: list[str] | None = None) -> pd.DataFrame:
-    """Gắn các cột flag_* và cột tổng hợp is_clean (kèm is_clean_price nếu có) vào bảng."""
+def attach_qa_flags(df: pd.DataFrame, rules: dict[str, pd.Series], price_flags: list[str] | None = None, info_flags: list[str] | None = None) -> pd.DataFrame:
+    """Gắn các cột flag_* và cột tổng hợp is_clean (kèm is_clean_price nếu có). Cờ trong info_flags chỉ ghi nhận, không loại dòng."""
     df_out = df.copy()
     price_flag_set = set(price_flags or [])
+    info_flag_set = set(info_flags or [])
 
     structural_clean = pd.Series(True, index=df_out.index, dtype=bool)
     price_clean = pd.Series(True, index=df_out.index, dtype=bool)
 
     for rule_name, mask in rules.items():
         df_out[rule_name] = mask.fillna(False).astype(bool)
+        if rule_name in info_flag_set:
+            continue
         if rule_name in price_flag_set:
-            price_clean = price_clean & (~df_out[rule_name]) 
+            price_clean = price_clean & (~df_out[rule_name])
         else:
             structural_clean = structural_clean & (~df_out[rule_name])
 
@@ -198,7 +248,7 @@ def compute_listings_kpi_impact(df: pd.DataFrame) -> tuple[str, str]:
     return f"{med_pre} ({mean_pre})", f"{med_post} ({mean_post})"
 
 def compute_calendar_kpi_impact(df: pd.DataFrame) -> tuple[str, str]:
-    """Tính tỷ lệ khóa lịch (available == 'f') trước và sau QA."""
+    """Tính tỷ lệ ngày không khả dụng (available == 'f') trước và sau QA."""
     if "available" not in df.columns or len(df) == 0:
         return "NaN", "NaN"
     occ_pre = round(float((df["available"] == "f").mean() * 100), 2)
@@ -210,23 +260,91 @@ def compute_reviews_kpi_impact(df: pd.DataFrame) -> tuple[str, str]:
     """Tính tổng số bình luận hợp lệ trước và sau QA."""
     return str(len(df)), str(int(df["is_clean"].sum()))
 
-def build_report_rows(snapshot_str: str, table_name: str, rules: dict[str, pd.Series], kpi_name: str, kpi_pre: str, kpi_post: str) -> list[dict]:
-    """Tạo danh sách các dòng báo cáo QA cho một bảng tại một mốc thời gian."""
+def kpi_post_for_rule(compute_fn, df: pd.DataFrame, mask: pd.Series) -> str:
+    """KPI sau QA nếu CHỈ loại các dòng vi phạm một quy tắc (tác động riêng của quy tắc đó)."""
+    keep = ~mask.fillna(False).astype(bool)
+    tmp = df.copy()
+    tmp["is_clean"] = keep
+    if "is_clean_price" in tmp.columns:
+        tmp["is_clean_price"] = keep
+    return compute_fn(tmp)[1]
+
+def compute_per_rule_kpi(compute_fn, df: pd.DataFrame, rules: dict[str, pd.Series]) -> dict[str, str]:
+    """Tính KPI sau QA riêng cho từng quy tắc."""
+    return {name: kpi_post_for_rule(compute_fn, df, mask) for name, mask in rules.items()}
+
+def build_report_rows(snapshot_str: str, table_name: str, rules: dict[str, pd.Series], kpi_name: str, kpi_pre: str, kpi_post: str, per_rule_post: dict[str, str] | None = None) -> list[dict]:
+    """Tạo danh sách các dòng báo cáo QA cho một bảng tại một mốc thời gian (kèm điều kiện/lý do/hành động)."""
     rows = []
     for rule_name, mask in rules.items():
+        dieu_kien, ly_do, hanh_dong = RULE_DOCS.get(rule_name, ("", "", ""))
         rows.append({
             "moc_thoi_gian": snapshot_str,
             "bang": table_name,
             "quy_tac": rule_name,
+            "dieu_kien": dieu_kien,
+            "ly_do": ly_do,
+            "hanh_dong": hanh_dong,
             "so_dong_vi_pham": int(mask.sum()),
             "ty_le_phan_tram": round(float(mask.mean() * 100), 2) if len(mask) > 0 else 0.0,
             "kpi_ten": kpi_name,
             "kpi_truoc_qa": kpi_pre,
-            "kpi_sau_qa": kpi_post,
+            "kpi_sau_qa": (per_rule_post or {}).get(rule_name, kpi_post),
         })
     return rows
 
-def process_listings_qa(file_path: Path, snap_str: str, qa_cfg: dict, base_ids: set | None) -> tuple[list[dict], set | None]:
+def build_summary_row(snapshot_str: str, table_name: str, df: pd.DataFrame, kpi_name: str, kpi_pre: str, kpi_post: str) -> dict:
+    """Dòng tổng hợp: tác động gộp của toàn bộ quy tắc loại dòng."""
+    clean_col = "is_clean_price" if "is_clean_price" in df.columns else "is_clean"
+    removed = int((~df[clean_col]).sum())
+    return {
+        "moc_thoi_gian": snapshot_str,
+        "bang": table_name,
+        "quy_tac": "TONG_HOP_QA",
+        "dieu_kien": f"Dòng vi phạm ít nhất một quy tắc loại dòng ({clean_col} = False)",
+        "ly_do": "Tác động gộp của cả bộ quy tắc",
+        "hanh_dong": "Loại khỏi KPI",
+        "so_dong_vi_pham": removed,
+        "ty_le_phan_tram": round(removed / len(df) * 100, 2) if len(df) > 0 else 0.0,
+        "kpi_ten": kpi_name,
+        "kpi_truoc_qa": kpi_pre,
+        "kpi_sau_qa": kpi_post,
+    }
+
+def warn_if_mismatch(label: str, actual: object, expected: object) -> None:
+    """In cảnh báo khi số liệu thực tế lệch với kỳ vọng khai trong config (validation)."""
+    if expected is not None and actual != expected:
+        print(f"    [!] Lệch kỳ vọng config - {label}: thực tế {actual} vs kỳ vọng {expected}")
+
+def check_listings_expectations(df: pd.DataFrame, val_cfg: dict | None, snap_idx: int, is_last: bool) -> None:
+    """Đối chiếu bảng listings với khối validation trong config."""
+    if not val_cfg:
+        return
+    warn_if_mismatch("số listing", len(df), val_cfg.get("expected_listings_per_snapshot"))
+
+    no_rev = val_cfg.get("no_reviews_count")
+    if no_rev and snap_idx < len(no_rev) and "number_of_reviews" in df.columns:
+        n_zero = int((pd.to_numeric(df["number_of_reviews"], errors="coerce").fillna(0) == 0).sum())
+        warn_if_mismatch("số phòng chưa có review", n_zero, no_rev[snap_idx])
+
+    if "room_type" in df.columns:
+        actual_rooms = df["room_type"].value_counts().to_dict()
+        for room, n_exp in (val_cfg.get("room_types") or {}).items():
+            warn_if_mismatch(f"room_type '{room}'", int(actual_rooms.get(room, 0)), n_exp)
+
+    if is_last and "price" in df.columns:
+        warn_if_mismatch("số listing thiếu giá (mốc cuối)", int(df["price"].isna().sum()), val_cfg.get("missing_price_last_snapshot"))
+
+    if "analysis_area" in df.columns:
+        counts = df["analysis_area"].value_counts()
+        warn_if_mismatch("số vùng", int(counts.size), val_cfg.get("expected_num_areas"))
+        low, high = val_cfg.get("listings_per_area_range") or [None, None]
+        if low is not None and high is not None:
+            bad = counts[(counts < low) | (counts > high)]
+            if not bad.empty:
+                print(f"    [!] Lệch kỳ vọng config - vùng ngoài khoảng [{low}, {high}] listing: {bad.to_dict()}")
+
+def process_listings_qa(file_path: Path, snap_str: str, qa_cfg: dict, base_ids: set | None, val_cfg: dict | None = None, snap_idx: int = 0, is_last: bool = False) -> tuple[list[dict], set | None]:
     """Đọc, chuẩn hóa, gắn cờ QA, lưu lại listings.parquet và trả về báo cáo."""
     if not file_path.exists():
         return [], base_ids
@@ -239,42 +357,61 @@ def process_listings_qa(file_path: Path, snap_str: str, qa_cfg: dict, base_ids: 
 
     rules = build_listings_rules(df, qa_cfg, base_ids)
     price_flags = ["flag_thieu_gia", "flag_sai_kieu_gia", "flag_gia_ngoai_lai"]
-    df = attach_qa_flags(df, rules, price_flags=price_flags)
+    df = attach_qa_flags(df, rules, price_flags=price_flags, info_flags=["flag_lech_id_giua_cac_moc"])
+    check_listings_expectations(df, val_cfg, snap_idx, is_last)
 
     kpi_pre, kpi_post = compute_listings_kpi_impact(df)
+    per_rule = compute_per_rule_kpi(compute_listings_kpi_impact, df, rules)
     df.to_parquet(file_path, index=False)
     print(f"    -> Listings: Thiếu giá = {int(rules['flag_thieu_gia'].sum())} | KPI Giá trước/sau = {kpi_pre} -> {kpi_post}")
 
-    rows = build_report_rows(snap_str, "listings", rules, "price_median (mean)", kpi_pre, kpi_post)
+    rows = build_report_rows(snap_str, "listings", rules, "price_median (mean)", kpi_pre, kpi_post, per_rule)
+    rows.append(build_summary_row(snap_str, "listings", df, "price_median (mean)", kpi_pre, kpi_post))
     return rows, base_ids
 
-def process_calendar_qa(file_path: Path, snap_str: str) -> list[dict]:
+def process_calendar_qa(file_path: Path, snap_str: str, val_cfg: dict | None = None) -> list[dict]:
     """Đọc, chuẩn hóa, gắn cờ QA, lưu lại calendar.parquet và trả về báo cáo."""
     if not file_path.exists():
         return []
     df = pd.read_parquet(file_path)
     df = add_clean_date_column(df, "date", "date_clean")
+    if val_cfg:
+        warn_if_mismatch("số dòng calendar", len(df), val_cfg.get("expected_calendar_rows_per_snapshot"))
 
     rules = build_calendar_rules(df)
     df = attach_qa_flags(df, rules)
 
     kpi_pre, kpi_post = compute_calendar_kpi_impact(df)
+    per_rule = compute_per_rule_kpi(compute_calendar_kpi_impact, df, rules)
     df.to_parquet(file_path, index=False)
-    return build_report_rows(snap_str, "calendar", rules, "occupancy_rate_pct", kpi_pre, kpi_post)
+    rows = build_report_rows(snap_str, "calendar", rules, "unavailable_rate_pct", kpi_pre, kpi_post, per_rule)
+    rows.append(build_summary_row(snap_str, "calendar", df, "unavailable_rate_pct", kpi_pre, kpi_post))
+    return rows
 
-def process_reviews_qa(file_path: Path, snap_str: str) -> list[dict]:
-    """Đọc, chuẩn hóa, gắn cờ QA, lưu lại reviews.parquet và trả về báo cáo."""
+def process_reviews_qa(file_path: Path, snap_str: str, base_reviews: dict | None = None, val_cfg: dict | None = None) -> tuple[list[dict], dict | None]:
+    """Đọc, chuẩn hóa, gắn cờ QA, lưu lại reviews.parquet và trả về (báo cáo, từ điển review mốc đầu)."""
     if not file_path.exists():
-        return []
+        return [], base_reviews
     df = pd.read_parquet(file_path)
     df = add_clean_date_column(df, "date", "date_clean")
+    if val_cfg:
+        warn_if_mismatch("số dòng reviews", len(df), val_cfg.get("expected_reviews_per_snapshot"))
 
-    rules = build_reviews_rules(df, snap_str)
-    df = attach_qa_flags(df, rules)
+    if base_reviews is None and {"id", "listing_id"}.issubset(df.columns):
+        base_reviews = dict(zip(df["id"], df["listing_id"]))
+        compare_with = None  # mốc đầu: chưa có gì để so sánh
+    else:
+        compare_with = base_reviews
+
+    rules = build_reviews_rules(df, snap_str, compare_with)
+    df = attach_qa_flags(df, rules, info_flags=["flag_lech_review_giua_cac_moc"])
 
     kpi_pre, kpi_post = compute_reviews_kpi_impact(df)
+    per_rule = compute_per_rule_kpi(compute_reviews_kpi_impact, df, rules)
     df.to_parquet(file_path, index=False)
-    return build_report_rows(snap_str, "reviews", rules, "valid_reviews_count", kpi_pre, kpi_post)
+    rows = build_report_rows(snap_str, "reviews", rules, "valid_reviews_count", kpi_pre, kpi_post, per_rule)
+    rows.append(build_summary_row(snap_str, "reviews", df, "valid_reviews_count", kpi_pre, kpi_post))
+    return rows, base_reviews
 
 def run_qa(config_path: str | Path = "configs/vienna.yaml") -> pd.DataFrame:
     """Điều phối toàn bộ bước QA qua các mốc chụp và xuất reports/qa_report.csv."""
@@ -282,18 +419,21 @@ def run_qa(config_path: str | Path = "configs/vienna.yaml") -> pd.DataFrame:
     config = load_config(config_path)
     snapshots = config.get("snapshots", [])
     qa_cfg = config.get("qa", {})
+    val_cfg = config.get("validation", {})
 
     all_report_rows = []
     base_listing_ids = None
+    base_reviews = None
 
-    for snapshot in snapshots:
+    for snap_idx, snapshot in enumerate(snapshots):
         snap_str = str(snapshot)
         print(f"\n- Đang kiểm định mốc: {snap_str}")
         proc_dir = Path("data/processed") / snap_str
+        is_last = snap_idx == len(snapshots) - 1
 
-        rows_l, base_listing_ids = process_listings_qa(proc_dir / "listings.parquet", snap_str, qa_cfg, base_listing_ids)
-        rows_c = process_calendar_qa(proc_dir / "calendar.parquet", snap_str)
-        rows_r = process_reviews_qa(proc_dir / "reviews.parquet", snap_str)
+        rows_l, base_listing_ids = process_listings_qa(proc_dir / "listings.parquet", snap_str, qa_cfg, base_listing_ids, val_cfg, snap_idx, is_last)
+        rows_c = process_calendar_qa(proc_dir / "calendar.parquet", snap_str, val_cfg)
+        rows_r, base_reviews = process_reviews_qa(proc_dir / "reviews.parquet", snap_str, base_reviews, val_cfg)
 
         all_report_rows.extend(rows_l + rows_c + rows_r)
 

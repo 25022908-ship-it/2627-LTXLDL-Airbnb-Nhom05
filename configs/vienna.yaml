@@ -19,16 +19,23 @@ qa:
   price_max_eur: 5000
   min_nights_cap: 365
   dedupe_keys: [id, last_scraped]
+  lat_bounds: [48.10, 48.35]
+  lon_bounds: [16.15, 16.60]
+  valid_areas: [A01, A02, A03, A04, A05, A06, A07, A08]
 
 kpi:
-  area_col: neighbourhood_cleansed
-
+  area_col: analysis_area
+  
 llm:
   provider: "gemini"
   model: "gemini-3.5-flash-lite"
+  price_in_per_1m: 0.30
+  price_out_per_1m: 2.50
   sample_size: 1000
   hand_label_size: 100
   aspects: [vị trí, sạch sẽ, chủ nhà, giá trị, tiện nghi, độ ồn, an toàn]
+  min_coverage: 0.95
+  usage_log: data/processed/llm_usage.jsonl
   cache: data/processed/llm_cache.jsonl
 
 seed: 42

@@ -1,0 +1,105 @@
+﻿moc_thoi_gian,bang,quy_tac,dieu_kien,ly_do,hanh_dong,so_dong_vi_pham,ty_le_phan_tram,kpi_ten,kpi_truoc_qa,kpi_sau_qa
+2025-09-14,listings,flag_thieu_gia,price bị trống,Không tính được KPI giá,Gắn cờ; loại khỏi KPI giá,46,4.6,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_sai_kieu_gia,price có giá trị nhưng không ép được sang số,Chuỗi giá sai định dạng,Gắn cờ; loại khỏi KPI giá,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_gia_ngoai_lai,price_num <= 0 hoặc > price_max_eur,Giá vô lý làm lệch trung bình,Gắn cờ; loại khỏi KPI giá,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_dem_ngoai_lai,minimum_nights <= 0 hoặc > min_nights_cap,Số đêm tối thiểu phi thực tế,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_ngoai_toa_do,Tọa độ thiếu hoặc nằm ngoài khung địa lý thành phố,Vị trí sai/không đáng tin,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_sai_suc_chua,accommodates <= 0 hoặc > 50; bedrooms < 0 hoặc > 20,Sức chứa phi logic,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_sai_logic_review,"Điểm ngoài [0,5] hoặc có điểm khi number_of_reviews = 0",Mâu thuẫn dữ liệu đánh giá,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_sai_thong_tin_host,Thiếu host_id hoặc calculated_host_listings_count < 1,Không xác định được chủ nhà,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_lech_loai_phong,room_type ngoài 4 loại chuẩn,Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_lech_vung,Thiếu neighbourhood_cleansed hoặc analysis_area ngoài danh mục,Không gán được vùng phân tích,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_lech_id_giua_cac_moc,id không có ở mốc đầu tiên,Listing mới xuất hiện sau mốc đầu (không phải lỗi),"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean_price = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,46,4.6,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,calendar,flag_thieu_available,available bị trống,Không biết ngày trống hay đã khóa,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,38.75,38.75
+2025-09-14,calendar,flag_sai_kieu_ngay,Cột ngày có dữ liệu nhưng không ép được sang datetime,Ngày sai định dạng,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,38.75,38.75
+2025-09-14,calendar,flag_sai_logic_dem,minimum_nights <= 0 hoặc > maximum_nights,Ràng buộc số đêm phi logic,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,38.75,38.75
+2025-09-14,calendar,flag_trung_ngay_phong,"Trùng (listing_id, date)",Một ngày bị đếm nhiều lần,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,38.75,38.75
+2025-09-14,calendar,flag_lech_available,"available ngoài {t, f}",Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,38.75,38.75
+2025-09-14,calendar,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,0,0.0,unavailable_rate_pct,38.75,38.75
+2025-09-14,reviews,flag_thieu_noi_dung,comments trống,Không có văn bản để phân tích,Gắn cờ; loại khỏi mẫu LLM/baseline,0,0.0,valid_reviews_count,5000,5000
+2025-09-14,reviews,flag_sai_kieu_ngay,Cột ngày có dữ liệu nhưng không ép được sang datetime,Ngày sai định dạng,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2025-09-14,reviews,flag_ngay_tuong_lai,Ngày review sau ngày chụp dữ liệu,Ngày không thể xảy ra,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2025-09-14,reviews,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2025-09-14,reviews,flag_review_tu_dong,comments chứa thông báo tự động của Airbnb (EN: 'automated posting'),"Không phải đánh giá của khách, làm lệch cảm xúc",Gắn cờ; loại khỏi mẫu LLM/baseline,0,0.0,valid_reviews_count,5000,5000
+2025-09-14,reviews,flag_lech_review_giua_cac_moc,Cùng review id nhưng listing_id khác với mốc đầu,Dữ liệu không nhất quán giữa các mốc,"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,valid_reviews_count,5000,5000
+2025-09-14,reviews,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2025-12-16,listings,flag_thieu_gia,price bị trống,Không tính được KPI giá,Gắn cờ; loại khỏi KPI giá,1000,100.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_sai_kieu_gia,price có giá trị nhưng không ép được sang số,Chuỗi giá sai định dạng,Gắn cờ; loại khỏi KPI giá,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_gia_ngoai_lai,price_num <= 0 hoặc > price_max_eur,Giá vô lý làm lệch trung bình,Gắn cờ; loại khỏi KPI giá,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_dem_ngoai_lai,minimum_nights <= 0 hoặc > min_nights_cap,Số đêm tối thiểu phi thực tế,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_ngoai_toa_do,Tọa độ thiếu hoặc nằm ngoài khung địa lý thành phố,Vị trí sai/không đáng tin,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_sai_suc_chua,accommodates <= 0 hoặc > 50; bedrooms < 0 hoặc > 20,Sức chứa phi logic,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_sai_logic_review,"Điểm ngoài [0,5] hoặc có điểm khi number_of_reviews = 0",Mâu thuẫn dữ liệu đánh giá,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_sai_thong_tin_host,Thiếu host_id hoặc calculated_host_listings_count < 1,Không xác định được chủ nhà,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_lech_loai_phong,room_type ngoài 4 loại chuẩn,Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_lech_vung,Thiếu neighbourhood_cleansed hoặc analysis_area ngoài danh mục,Không gán được vùng phân tích,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_lech_id_giua_cac_moc,id không có ở mốc đầu tiên,Listing mới xuất hiện sau mốc đầu (không phải lỗi),"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean_price = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,1000,100.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,calendar,flag_thieu_available,available bị trống,Không biết ngày trống hay đã khóa,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.69,37.69
+2025-12-16,calendar,flag_sai_kieu_ngay,Cột ngày có dữ liệu nhưng không ép được sang datetime,Ngày sai định dạng,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.69,37.69
+2025-12-16,calendar,flag_sai_logic_dem,minimum_nights <= 0 hoặc > maximum_nights,Ràng buộc số đêm phi logic,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.69,37.69
+2025-12-16,calendar,flag_trung_ngay_phong,"Trùng (listing_id, date)",Một ngày bị đếm nhiều lần,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.69,37.69
+2025-12-16,calendar,flag_lech_available,"available ngoài {t, f}",Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.69,37.69
+2025-12-16,calendar,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,0,0.0,unavailable_rate_pct,37.69,37.69
+2025-12-16,reviews,flag_thieu_noi_dung,comments trống,Không có văn bản để phân tích,Gắn cờ; loại khỏi mẫu LLM/baseline,0,0.0,valid_reviews_count,5000,5000
+2025-12-16,reviews,flag_sai_kieu_ngay,Cột ngày có dữ liệu nhưng không ép được sang datetime,Ngày sai định dạng,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2025-12-16,reviews,flag_ngay_tuong_lai,Ngày review sau ngày chụp dữ liệu,Ngày không thể xảy ra,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2025-12-16,reviews,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2025-12-16,reviews,flag_review_tu_dong,comments chứa thông báo tự động của Airbnb (EN: 'automated posting'),"Không phải đánh giá của khách, làm lệch cảm xúc",Gắn cờ; loại khỏi mẫu LLM/baseline,0,0.0,valid_reviews_count,5000,5000
+2025-12-16,reviews,flag_lech_review_giua_cac_moc,Cùng review id nhưng listing_id khác với mốc đầu,Dữ liệu không nhất quán giữa các mốc,"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,valid_reviews_count,5000,5000
+2025-12-16,reviews,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2026-03-24,listings,flag_thieu_gia,price bị trống,Không tính được KPI giá,Gắn cờ; loại khỏi KPI giá,16,1.6,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_sai_kieu_gia,price có giá trị nhưng không ép được sang số,Chuỗi giá sai định dạng,Gắn cờ; loại khỏi KPI giá,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_gia_ngoai_lai,price_num <= 0 hoặc > price_max_eur,Giá vô lý làm lệch trung bình,Gắn cờ; loại khỏi KPI giá,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_dem_ngoai_lai,minimum_nights <= 0 hoặc > min_nights_cap,Số đêm tối thiểu phi thực tế,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_ngoai_toa_do,Tọa độ thiếu hoặc nằm ngoài khung địa lý thành phố,Vị trí sai/không đáng tin,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_sai_suc_chua,accommodates <= 0 hoặc > 50; bedrooms < 0 hoặc > 20,Sức chứa phi logic,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_sai_logic_review,"Điểm ngoài [0,5] hoặc có điểm khi number_of_reviews = 0",Mâu thuẫn dữ liệu đánh giá,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_sai_thong_tin_host,Thiếu host_id hoặc calculated_host_listings_count < 1,Không xác định được chủ nhà,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_lech_loai_phong,room_type ngoài 4 loại chuẩn,Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_lech_vung,Thiếu neighbourhood_cleansed hoặc analysis_area ngoài danh mục,Không gán được vùng phân tích,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_lech_id_giua_cac_moc,id không có ở mốc đầu tiên,Listing mới xuất hiện sau mốc đầu (không phải lỗi),"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean_price = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,16,1.6,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,calendar,flag_thieu_available,available bị trống,Không biết ngày trống hay đã khóa,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,40.19,40.19
+2026-03-24,calendar,flag_sai_kieu_ngay,Cột ngày có dữ liệu nhưng không ép được sang datetime,Ngày sai định dạng,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,40.19,40.19
+2026-03-24,calendar,flag_sai_logic_dem,minimum_nights <= 0 hoặc > maximum_nights,Ràng buộc số đêm phi logic,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,40.19,40.19
+2026-03-24,calendar,flag_trung_ngay_phong,"Trùng (listing_id, date)",Một ngày bị đếm nhiều lần,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,40.19,40.19
+2026-03-24,calendar,flag_lech_available,"available ngoài {t, f}",Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,40.19,40.19
+2026-03-24,calendar,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,0,0.0,unavailable_rate_pct,40.19,40.19
+2026-03-24,reviews,flag_thieu_noi_dung,comments trống,Không có văn bản để phân tích,Gắn cờ; loại khỏi mẫu LLM/baseline,0,0.0,valid_reviews_count,5000,5000
+2026-03-24,reviews,flag_sai_kieu_ngay,Cột ngày có dữ liệu nhưng không ép được sang datetime,Ngày sai định dạng,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2026-03-24,reviews,flag_ngay_tuong_lai,Ngày review sau ngày chụp dữ liệu,Ngày không thể xảy ra,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2026-03-24,reviews,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2026-03-24,reviews,flag_review_tu_dong,comments chứa thông báo tự động của Airbnb (EN: 'automated posting'),"Không phải đánh giá của khách, làm lệch cảm xúc",Gắn cờ; loại khỏi mẫu LLM/baseline,0,0.0,valid_reviews_count,5000,5000
+2026-03-24,reviews,flag_lech_review_giua_cac_moc,Cùng review id nhưng listing_id khác với mốc đầu,Dữ liệu không nhất quán giữa các mốc,"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,valid_reviews_count,5000,5000
+2026-03-24,reviews,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2026-06-20,listings,flag_thieu_gia,price bị trống,Không tính được KPI giá,Gắn cờ; loại khỏi KPI giá,20,2.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_sai_kieu_gia,price có giá trị nhưng không ép được sang số,Chuỗi giá sai định dạng,Gắn cờ; loại khỏi KPI giá,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_gia_ngoai_lai,price_num <= 0 hoặc > price_max_eur,Giá vô lý làm lệch trung bình,Gắn cờ; loại khỏi KPI giá,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_dem_ngoai_lai,minimum_nights <= 0 hoặc > min_nights_cap,Số đêm tối thiểu phi thực tế,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_ngoai_toa_do,Tọa độ thiếu hoặc nằm ngoài khung địa lý thành phố,Vị trí sai/không đáng tin,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_sai_suc_chua,accommodates <= 0 hoặc > 50; bedrooms < 0 hoặc > 20,Sức chứa phi logic,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_sai_logic_review,"Điểm ngoài [0,5] hoặc có điểm khi number_of_reviews = 0",Mâu thuẫn dữ liệu đánh giá,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_sai_thong_tin_host,Thiếu host_id hoặc calculated_host_listings_count < 1,Không xác định được chủ nhà,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_lech_loai_phong,room_type ngoài 4 loại chuẩn,Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_lech_vung,Thiếu neighbourhood_cleansed hoặc analysis_area ngoài danh mục,Không gán được vùng phân tích,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_lech_id_giua_cac_moc,id không có ở mốc đầu tiên,Listing mới xuất hiện sau mốc đầu (không phải lỗi),"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean_price = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,20,2.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,calendar,flag_thieu_available,available bị trống,Không biết ngày trống hay đã khóa,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.04,37.04
+2026-06-20,calendar,flag_sai_kieu_ngay,Cột ngày có dữ liệu nhưng không ép được sang datetime,Ngày sai định dạng,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.04,37.04
+2026-06-20,calendar,flag_sai_logic_dem,minimum_nights <= 0 hoặc > maximum_nights,Ràng buộc số đêm phi logic,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.04,37.04
+2026-06-20,calendar,flag_trung_ngay_phong,"Trùng (listing_id, date)",Một ngày bị đếm nhiều lần,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.04,37.04
+2026-06-20,calendar,flag_lech_available,"available ngoài {t, f}",Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.04,37.04
+2026-06-20,calendar,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,0,0.0,unavailable_rate_pct,37.04,37.04
+2026-06-20,reviews,flag_thieu_noi_dung,comments trống,Không có văn bản để phân tích,Gắn cờ; loại khỏi mẫu LLM/baseline,0,0.0,valid_reviews_count,5000,5000
+2026-06-20,reviews,flag_sai_kieu_ngay,Cột ngày có dữ liệu nhưng không ép được sang datetime,Ngày sai định dạng,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2026-06-20,reviews,flag_ngay_tuong_lai,Ngày review sau ngày chụp dữ liệu,Ngày không thể xảy ra,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2026-06-20,reviews,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000
+2026-06-20,reviews,flag_review_tu_dong,comments chứa thông báo tự động của Airbnb (EN: 'automated posting'),"Không phải đánh giá của khách, làm lệch cảm xúc",Gắn cờ; loại khỏi mẫu LLM/baseline,0,0.0,valid_reviews_count,5000,5000
+2026-06-20,reviews,flag_lech_review_giua_cac_moc,Cùng review id nhưng listing_id khác với mốc đầu,Dữ liệu không nhất quán giữa các mốc,"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,valid_reviews_count,5000,5000
+2026-06-20,reviews,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,0,0.0,valid_reviews_count,5000,5000

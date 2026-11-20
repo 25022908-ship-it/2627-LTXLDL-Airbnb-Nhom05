@@ -1,0 +1,8 @@
+﻿kpi,ten,muc_tieu,cong_thuc,don_vi,ben_lien_quan
+KPI 1,Giá thuê theo khu vực,So sánh mặt bằng giá giữa các vùng,"median/mean/IQR của price_num theo analysis_area, mốc cuối, dòng sạch về giá",EUR/đêm,Cơ quan quản lý du lịch & quy hoạch đô thị Vienna
+KPI 2,Tỷ lệ ngày không khả dụng,"Theo dõi mức khai thác theo thời gian và vùng (chỉ báo gần đúng, gồm ngày chủ nhà chặn)",số ngày available='f' / tổng ngày lịch sạch,%,Cơ quan quản lý du lịch & quy hoạch đô thị Vienna
+KPI 3,Động lực đánh giá,Theo dõi tăng trưởng review và số phòng chưa có review,tổng number_of_reviews; số phòng có number_of_reviews = 0,lượt; phòng,Cơ quan quản lý du lịch & quy hoạch đô thị Vienna
+KPI 4,Chuyên nghiệp hóa chủ nhà,Đo tỷ trọng chủ nhà nhiều phòng và chênh lệch giá,tỷ lệ phòng có calculated_host_listings_count >= 2; median giá hai nhóm,%; EUR/đêm,Cơ quan quản lý du lịch & quy hoạch đô thị Vienna
+KPI 5,Cảm xúc khách theo khu vực (LLM),So sánh mức hài lòng giữa các vùng,tỷ lệ positive/mixed/negative trên bình luận LLM hợp lệ; net = positive - negative,%,Cơ quan quản lý du lịch & quy hoạch đô thị Vienna
+KPI 6,Khen/chê theo khía cạnh (LLM),Xác định khía cạnh mạnh/yếu của dịch vụ,số bình luận khen/chê mỗi khía cạnh / số bình luận hợp lệ,lượt; %,Cơ quan quản lý du lịch & quy hoạch đô thị Vienna
+KPI 7,Giá theo quận (neighbourhood_cleansed),Dữ liệu cho bản đồ giá theo ranh giới hành chính,"median price_num theo neighbourhood_cleansed, mốc cuối",EUR/đêm,Cơ quan quản lý du lịch & quy hoạch đô thị Vienna

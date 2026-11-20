@@ -1,0 +1,4 @@
+﻿Phương pháp,Số câu chấm,Cảm xúc (accuracy),Cảm xúc (macro-F1),Khía cạnh (F1),Khía cạnh kèm khen/chê (F1),Ngôn ngữ (accuracy)
+Luôn đoán lớp cảm xúc phổ biến nhất (mốc tối thiểu),100,0.81,,,,
+Đối chứng bằng từ khoá (Baseline),100,0.85,0.689,0.827,0.78,1.0
+LLM (gemini-3.5-flash-lite),100,0.9,0.743,0.946,0.921,1.0

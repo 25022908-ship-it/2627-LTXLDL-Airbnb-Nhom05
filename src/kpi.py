@@ -6,20 +6,17 @@ MIN_N_PRICE = 10
 MIN_N_TEXT = 30
 
 def load_config(config_path: str | Path = "configs/vienna.yaml") -> dict:
-    """Đọc tệp cấu hình YAML an toàn với bảng mã utf-8."""
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 def compute_iqr(series: pd.Series) -> float:
-    """Tính khoảng tứ phân vị IQR (Q75 - Q25) an toàn, bỏ qua NaN."""
     clean_s = pd.to_numeric(series, errors="coerce").dropna()
     if clean_s.empty:
         return 0.0
     return round(float(clean_s.quantile(0.75) - clean_s.quantile(0.25)), 2)
 
-
 def ensure_price_num(df: pd.DataFrame) -> pd.DataFrame:
-    """Đảm bảo bảng listings luôn có cột số price_num ngay cả khi chưa chạy qa.py."""
+    # Dự phòng chuyển đổi cột giá nếu chạy kpi.py độc lập mà chưa qua qa.py
     df_out = df.copy()
     if "price_num" in df_out.columns:
         return df_out
@@ -30,9 +27,7 @@ def ensure_price_num(df: pd.DataFrame) -> pd.DataFrame:
         df_out["price_num"] = float("nan")
     return df_out
 
-
 def filter_clean_rows(df: pd.DataFrame, require_price: bool = False) -> pd.DataFrame:
-    """Lọc các dòng đạt chuẩn QA (is_clean_price nếu tính giá, hoặc is_clean chung)."""
     if require_price and "is_clean_price" in df.columns:
         return df[df["is_clean_price"]].copy()
     if "is_clean" in df.columns:
@@ -42,18 +37,14 @@ def filter_clean_rows(df: pd.DataFrame, require_price: bool = False) -> pd.DataF
         return out
     return df.copy()
 
-
 def resolve_area_column(df: pd.DataFrame, preferred_col: str = "analysis_area") -> str:
-    """Chọn cột vùng phân tích hợp lệ (ưu tiên cột trong config, dự phòng neighbourhood_cleansed)."""
     if preferred_col in df.columns:
         return preferred_col
     if "neighbourhood_cleansed" in df.columns:
         return "neighbourhood_cleansed"
     raise KeyError("Không tìm thấy cột khu vực (analysis_area hoặc neighbourhood_cleansed) trong bảng.")
 
-
 def compute_kpi1_price_by_area(df_last_listings: pd.DataFrame, area_pref: str = "analysis_area") -> pd.DataFrame:
-    """KPI 1: Thống kê giá thuê (median, mean, std, IQR, min, max) và loại phòng theo vùng ở mốc cuối."""
     df_clean = ensure_price_num(df_last_listings)
     df_clean = filter_clean_rows(df_clean, require_price=True)
     area_col = resolve_area_column(df_clean, area_pref)
@@ -81,15 +72,16 @@ def compute_kpi1_price_by_area(df_last_listings: pd.DataFrame, area_pref: str = 
         grouped[col] = grouped[col].round(2)
     return grouped
 
-def compute_kpi4_host_professionalization(df_last_listings: pd.DataFrame, area_pref: str = "analysis_area") -> pd.DataFrame:
-    """KPI 4: Phân tích tỷ trọng và mức giá giữa Chủ nhà cá nhân (1 phòng) và Chủ nhà chuyên nghiệp (>=2 phòng)."""
+def compute_kpi4_host_professionalization(
+    df_last_listings: pd.DataFrame,
+    area_pref: str = "analysis_area",
+) -> pd.DataFrame:
     df_clean = ensure_price_num(df_last_listings)
     df_clean = filter_clean_rows(df_clean, require_price=False)
     area_col = resolve_area_column(df_clean, area_pref)
 
     host_count = pd.to_numeric(df_clean.get("calculated_host_listings_count", 1), errors="coerce").fillna(1)
     df_clean["is_multi_host"] = host_count >= 2
-    # Tỷ trọng tính trên mọi dòng sạch; còn so sánh giá chỉ dùng dòng sạch về giá (cùng chuẩn với KPI 1)
     df_clean["price_ok"] = df_clean["is_clean_price"] if "is_clean_price" in df_clean.columns else True
 
     rows = []
@@ -98,8 +90,12 @@ def compute_kpi4_host_professionalization(df_last_listings: pd.DataFrame, area_p
         multi_grp = grp[grp["is_multi_host"]]
         single_grp = grp[~grp["is_multi_host"]]
 
-        multi_prices = multi_grp.loc[multi_grp["price_ok"] & multi_grp["price_num"].notna() & (multi_grp["price_num"] > 0), "price_num"]
-        single_prices = single_grp.loc[single_grp["price_ok"] & single_grp["price_num"].notna() & (single_grp["price_num"] > 0), "price_num"]
+        multi_prices = multi_grp.loc[
+            multi_grp["price_ok"] & multi_grp["price_num"].notna() & (multi_grp["price_num"] > 0), "price_num"
+        ]
+        single_prices = single_grp.loc[
+            single_grp["price_ok"] & single_grp["price_num"].notna() & (single_grp["price_num"] > 0), "price_num"
+        ]
 
         rows.append({
             area_col: area_val,
@@ -113,9 +109,7 @@ def compute_kpi4_host_professionalization(df_last_listings: pd.DataFrame, area_p
 
     return pd.DataFrame(rows).sort_values(by="ty_le_chuyen_nghiep_pct", ascending=False).reset_index(drop=True)
 
-
 def compute_kpi7_price_by_neighbourhood(df_last_listings: pd.DataFrame) -> pd.DataFrame:
-    """KPI 7: Giá trung vị theo neighbourhood_cleansed ở mốc cuối (dữ liệu cho bản đồ choropleth)."""
     df_clean = filter_clean_rows(ensure_price_num(df_last_listings), require_price=True)
     if "neighbourhood_cleansed" not in df_clean.columns:
         return pd.DataFrame()
@@ -136,8 +130,7 @@ def compute_kpi7_price_by_neighbourhood(df_last_listings: pd.DataFrame) -> pd.Da
     return grouped
 
 def compute_kpi2_occupancy_trend(snapshots: list) -> pd.DataFrame:
-    """KPI 2: Tỷ lệ ngày không khả dụng (available == 'f') qua các mốc và theo khu vực.
-    Lưu ý: gồm cả ngày chủ nhà tự chặn và là lịch tương lai ~365 ngày kể từ ngày chụp, nên chỉ là chỉ báo gần đúng của mức lấp đầy."""
+    # Tỷ lệ ngày available == 'f' trên lịch tương lai 365 ngày (gồm cả ngày chủ nhà tự chặn)
     rows = []
     for snap in snapshots:
         snap_str = str(snap)
@@ -153,17 +146,15 @@ def compute_kpi2_occupancy_trend(snapshots: list) -> pd.DataFrame:
         merged = df_c.merge(df_l, left_on="listing_id", right_on="id", how="left")
         merged["is_booked"] = merged["available"] == "f"
 
-        # Tổng hợp toàn thành phố ở mốc đó
         rows.append({
             "moc_thoi_gian": snap_str,
-            "analysis_area": "ALL_VIENNA",
+            "analysis_area": "ALL",
             "tong_ngay_lich": len(merged),
             "so_ngay_khong_kha_dung": int(merged["is_booked"].sum()),
             "ty_le_khong_kha_dung_pct": round(float(merged["is_booked"].mean() * 100), 2) if len(merged) > 0 else 0.0,
             "so_dem_toi_thieu_trung_vi": round(float(pd.to_numeric(merged["minimum_nights"], errors="coerce").median()), 2),
         })
 
-        # Tổng hợp chi tiết theo từng vùng A01 - A08
         for area_val, grp in merged.groupby("analysis_area"):
             rows.append({
                 "moc_thoi_gian": snap_str,
@@ -177,7 +168,6 @@ def compute_kpi2_occupancy_trend(snapshots: list) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 def compute_kpi3_review_activity_trend(snapshots: list) -> pd.DataFrame:
-    """KPI 3: Động lực tăng trưởng đánh giá và sự giảm dần số phòng chưa có đánh giá qua các mốc."""
     rows = []
     for snap in snapshots:
         snap_str = str(snap)
@@ -210,7 +200,6 @@ def compute_kpi3_review_activity_trend(snapshots: list) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 def load_text_extraction_results(proc_dir: Path = Path("data/processed")) -> tuple[pd.DataFrame, str]:
-    """Đọc bảng kết quả LLM (llm_results.parquet). Không có thì báo lỗi, KHÔNG dùng baseline thay thế."""
     llm_path = proc_dir / "llm_results.parquet"
     if llm_path.exists():
         return pd.read_parquet(llm_path), "llm"
@@ -219,16 +208,18 @@ def load_text_extraction_results(proc_dir: Path = Path("data/processed")) -> tup
     if combined_path.exists():
         return pd.read_parquet(combined_path), "llm"
 
-    raise FileNotFoundError("Không tìm thấy llm_results.parquet trong data/processed/. Hãy chạy llm.py trước (KPI 5 & 6 phải dùng kết quả LLM).")
+    raise FileNotFoundError("Không tìm thấy llm_results.parquet trong data/processed/. Hãy chạy llm.py trước.")
 
 def keep_valid_text_rows(df_text: pd.DataFrame) -> pd.DataFrame:
-    """Chỉ giữ các bình luận có kết quả LLM hợp lệ (llm_ok=True), không điền giả cho dòng thiếu."""
     if "llm_ok" in df_text.columns:
         return df_text[df_text["llm_ok"].astype(bool)].copy()
     return df_text.copy()
 
-def compute_kpi5_sentiment_by_area(df_text: pd.DataFrame, df_last_listings: pd.DataFrame, prefix: str = "llm") -> pd.DataFrame:
-    """KPI 5: Phân bổ tỷ lệ cảm xúc (positive/mixed/negative) và ngôn ngữ theo khu vực analysis_area."""
+def compute_kpi5_sentiment_by_area(
+    df_text: pd.DataFrame,
+    df_last_listings: pd.DataFrame,
+    prefix: str = "llm",
+) -> pd.DataFrame:
     sent_col = f"{prefix}_sentiment" if f"{prefix}_sentiment" in df_text.columns else "base_sentiment"
     lang_col = f"{prefix}_lang" if f"{prefix}_lang" in df_text.columns else "base_lang"
 
@@ -261,7 +252,6 @@ def compute_kpi5_sentiment_by_area(df_text: pd.DataFrame, df_last_listings: pd.D
     return pd.DataFrame(rows).sort_values(by="diem_cam_xuc_rong_net_pct", ascending=False).reset_index(drop=True)
 
 def compute_kpi6_aspects_summary(df_text: pd.DataFrame, valid_aspects: list[str], prefix: str = "llm") -> pd.DataFrame:
-    """KPI 6: Thống kê lượt khen (pos), lượt chê (neg) và tỷ lệ hài lòng ròng cho các khía cạnh."""
     pos_col = f"{prefix}_aspects_pos" if f"{prefix}_aspects_pos" in df_text.columns else "base_aspects_pos"
     neg_col = f"{prefix}_aspects_neg" if f"{prefix}_aspects_neg" in df_text.columns else "base_aspects_neg"
 
@@ -297,9 +287,8 @@ def compute_kpi6_aspects_summary(df_text: pd.DataFrame, valid_aspects: list[str]
 
     return pd.DataFrame(rows).sort_values(by="tong_luot_nhac", ascending=False).reset_index(drop=True)
 
-def build_kpi_definitions() -> pd.DataFrame:
-    """Bảng định nghĩa KPI để đính kèm báo cáo. Cột ben_lien_quan: sửa theo bên đặt hàng mà nhóm đã chọn."""
-    stakeholder = "Cơ quan quản lý du lịch/đô thị Vienna (sửa theo bên đặt hàng của nhóm)"
+def build_kpi_definitions(city_label: str = "Vienna") -> pd.DataFrame:
+    stakeholder = f"Cơ quan quản lý du lịch & quy hoạch đô thị {city_label}"
     rows = [
         ("KPI 1", "Giá thuê theo khu vực", "So sánh mặt bằng giá giữa các vùng", "median/mean/IQR của price_num theo analysis_area, mốc cuối, dòng sạch về giá", "EUR/đêm"),
         ("KPI 2", "Tỷ lệ ngày không khả dụng", "Theo dõi mức khai thác theo thời gian và vùng (chỉ báo gần đúng, gồm ngày chủ nhà chặn)", "số ngày available='f' / tổng ngày lịch sạch", "%"),
@@ -314,9 +303,8 @@ def build_kpi_definitions() -> pd.DataFrame:
     )
 
 def run_kpi(config_path: str | Path = "configs/vienna.yaml") -> dict[str, pd.DataFrame]:
-    """Điều phối tính toán toàn bộ bảng KPI và lưu kết quả tại data/processed/."""
-    print("--- BẮT ĐẦU TÍNH TOÁN BỘ CHỈ SỐ NGHIỆP VỤ (KPI PIPELINE) ---")
     config = load_config(config_path)
+    city_label = str(config.get("city", "Vienna")).replace("-", " ").title()
     snapshots = config.get("snapshots", [])
     last_snap = str(snapshots[-1])
     valid_aspects = config.get("llm", {}).get("aspects", ["vị trí", "sạch sẽ", "chủ nhà", "giá trị", "tiện nghi", "độ ồn", "an toàn"])
@@ -329,19 +317,18 @@ def run_kpi(config_path: str | Path = "configs/vienna.yaml") -> dict[str, pd.Dat
 
     df_last_listings = pd.read_parquet(last_listings_path)
 
-    # 1. Tính các KPI từ dữ liệu có cấu trúc (Listings & Calendar)
+    # Tính các chỉ số từ bảng Listings và Calendar
     kpi1_df = compute_kpi1_price_by_area(df_last_listings, area_pref)
     kpi2_df = compute_kpi2_occupancy_trend(snapshots)
     kpi3_df = compute_kpi3_review_activity_trend(snapshots)
     kpi4_df = compute_kpi4_host_professionalization(df_last_listings, area_pref)
     kpi7_df = compute_kpi7_price_by_neighbourhood(df_last_listings)
 
-    # 2. Tính 2 KPI từ dữ liệu văn bản đã trích xuất bằng LLM
+    # Tính các chỉ số cảm xúc & khía cạnh từ kết quả trích xuất LLM
     df_text, prefix = load_text_extraction_results(proc_dir)
     kpi5_df = compute_kpi5_sentiment_by_area(df_text, df_last_listings, prefix=prefix)
     kpi6_df = compute_kpi6_aspects_summary(df_text, valid_aspects, prefix=prefix)
 
-    # 3. Lưu toàn bộ tệp CSV ra data/processed/
     kpi_outputs = {
         "kpi_1_price_by_area.csv": kpi1_df,
         "kpi_2_occupancy_trend.csv": kpi2_df,
@@ -359,17 +346,20 @@ def run_kpi(config_path: str | Path = "configs/vienna.yaml") -> dict[str, pd.Dat
 
     reports_dir = Path("reports")
     reports_dir.mkdir(parents=True, exist_ok=True)
-    build_kpi_definitions().to_csv(reports_dir / "kpi_definitions.csv", index=False, encoding="utf-8-sig")
+    build_kpi_definitions(city_label).to_csv(reports_dir / "kpi_definitions.csv", index=False, encoding="utf-8-sig")
 
-    print("\n--- TÓM TẮT NHANH KPI 1 (GIÁ THEO VÙNG MỐC CUỐI) ---")
+    print("\n[*] Tóm tắt nhanh KPI 1 (Giá theo vùng mốc cuối):")
     area_col = resolve_area_column(kpi1_df, area_pref)
     print(kpi1_df[[area_col, "so_phong_sach", "gia_trung_vi_eur", "gia_trung_binh_eur", "gia_iqr_eur"]].to_string(index=False))
 
-    print("\n--- TÓM TẮT NHANH KPI 6 (CÁC KHÍA CẠNH TỪ LLM) ---")
+    print("\n[*] Tóm tắt nhanh KPI 6 (Các khía cạnh từ LLM):")
     print(kpi6_df[["khia_canh", "so_luot_khen", "so_luot_che", "ty_le_nhac_toi_pct"]].to_string(index=False))
 
-    print("\n[+] HOÀN TẤT TÍNH KPI! Tất cả tệp CSV đã sẵn sàng cho bước vẽ biểu đồ (src/viz.py).")
+    print("\n[+] Hoàn tất tính KPI! Các tệp CSV đã sẵn sàng cho bước vẽ biểu đồ (src/viz.py).")
     return kpi_outputs
 
 if __name__ == "__main__":
+    print("-" * 80)
+    print("[Bước 6] Tính toán bộ chỉ số nghiệp vụ (KPI)...")
+    print("-" * 80)
     run_kpi()

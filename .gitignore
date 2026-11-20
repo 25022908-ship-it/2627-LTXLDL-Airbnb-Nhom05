@@ -6,4 +6,4 @@
 #
 data/raw/
 .env
-src/_pycache_/
+src/__pycache__/

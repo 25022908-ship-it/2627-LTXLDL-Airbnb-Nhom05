@@ -8,3 +8,4 @@ data/raw/
 data/processed/
 reports/
 .env
+src/_pycache_/

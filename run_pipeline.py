@@ -1,5 +1,7 @@
 import time
 import argparse
+import subprocess
+import sys
 from pathlib import Path
 
 from src.download import download_data, load_config as load_download_config
@@ -11,10 +13,14 @@ from src.evaluate import run_evaluate
 from src.kpi import run_kpi
 from src.viz import run_viz
 
+def print_step_banner(step_title: str, major: bool = False) -> None:
+    line = "=" * 80 if major else "-" * 80
+    print(f"\n{line}")
+    print(step_title)
+    print(line)
 
 def ensure_raw_data_downloaded(config_path: str | Path) -> None:
-    """Kiểm tra/tải từng tệp của từng mốc theo config (tệp đã hợp lệ sẽ được bỏ qua)."""
-    print("\n[Bước 0] Kiểm tra và tải dữ liệu thô theo mốc trong config...")
+    print_step_banner("[Bước 0] Kiểm tra và tải dữ liệu thô theo mốc trong config...")
     failed = download_data(load_download_config(config_path))
     critical = [f for f in failed if not f.endswith("neighbourhoods.geojson")]
     if critical:
@@ -22,66 +28,62 @@ def ensure_raw_data_downloaded(config_path: str | Path) -> None:
     if failed:
         print(f"    [!] Thiếu geojson ({failed}); biểu đồ bản đồ sẽ bị bỏ qua.")
 
-
 def run_full_pipeline(config_path: str = "configs/vienna.yaml", skip_llm: bool = False) -> None:
-    """Điều phối chạy tuần tự toàn bộ quy trình phân tích dữ liệu Vienna từ đầu đến cuối."""
     start_time = time.time()
-    print("=" * 80)
-    print(f"BẮT ĐẦU CHẠY TOÀN BỘ PIPELINE VIENNA (config={config_path}, skip_llm={skip_llm})")
-    print("=" * 80)
+    print_step_banner(
+        f"[Pipeline] Bắt đầu chạy quy trình (config={config_path}, skip_llm={skip_llm})",
+        major=True,
+    )
 
-    # Bước 0: Đảm bảo dữ liệu thô đã tải về
+    # Tải dữ liệu thô nếu chưa có
     ensure_raw_data_downloaded(config_path)
 
-    # Bước 1: Lọc dữ liệu theo phân công của Nhóm 5 (usecols & chunksize)
-    print("\n" + "-" * 80)
+    # Lọc dữ liệu theo danh sách ID phân công của nhóm
+    print_step_banner("[Bước 1] Lọc dữ liệu theo danh sách phân công...")
     run_filter(config_path=config_path)
 
-    # Bước 2: Chạy check_data.py (nếu có) ngay sau khi lọc để xuất báo cáo kiểm tra 80 cột chuẩn
+    # Kiểm tra nhanh cấu trúc cột nếu có script check_data.py
     check_script = Path("src/check_data.py")
     if check_script.exists():
-        print("\n" + "-" * 80)
-        import subprocess
-        import sys
+        print_step_banner("[Bước 1b] Kiểm tra cấu trúc cột dữ liệu sau lọc...")
         subprocess.run([sys.executable, str(check_script)], check=False)
 
-    # Bước 3: Làm sạch và kiểm định chất lượng dữ liệu (QA)
-    print("\n" + "-" * 80)
+    # Làm sạch và gắn cờ kiểm định chất lượng (QA)
+    print_step_banner("[Bước 2] Làm sạch và kiểm định chất lượng dữ liệu (QA)...")
     run_qa(config_path=config_path)
 
-    # Bước 4: Chạy phương pháp đối chứng từ khóa (Baseline)
-    print("\n" + "-" * 80)
+    # Phân loại cảm xúc & khía cạnh bằng bộ từ khóa đối chứng
+    print_step_banner("[Bước 3] Chạy phương pháp đối chứng bằng từ khóa (Baseline)...")
     run_baseline(config_path=config_path)
 
-    # Bước 5: Trích xuất có cấu trúc bằng Gemini LLM (hoặc đọc từ cache nếu --skip-llm)
-    print("\n" + "-" * 80)
+    # Trích xuất cảm xúc & khía cạnh qua Gemini API (hoặc đọc từ cache)
+    print_step_banner("[Bước 4] Trích xuất cảm xúc và khía cạnh bằng LLM...")
     run_llm(config_path=config_path, skip_llm=skip_llm)
 
-    # Bước 6: Đánh giá đối chiếu LLM vs Baseline trên bộ 100 nhãn tay
-    print("\n" + "-" * 80)
+    # Chấm điểm Accuracy/F1 của Baseline và LLM trên 100 nhãn tay
+    print_step_banner("[Bước 5] Đánh giá chất lượng LLM và Baseline trên bộ nhãn tay...")
     run_evaluate(config_path=config_path)
 
-    # Bước 7: Tính toán các bảng chỉ số nghiệp vụ (KPI)
-    print("\n" + "-" * 80)
+    # Tính toán các bảng chỉ số KPI
+    print_step_banner("[Bước 6] Tính toán bộ chỉ số nghiệp vụ (KPI)...")
     run_kpi(config_path=config_path)
 
-    # Bước 8: Tự động vẽ bộ biểu đồ tĩnh lưu vào figures/
-    print("\n" + "-" * 80)
+    # Vẽ bộ biểu đồ tĩnh và lưu vào thư mục figures/
+    print_step_banner("[Bước 7] Vẽ bộ biểu đồ tĩnh lưu vào figures/...")
     run_viz(config_path=config_path)
 
     elapsed = round(time.time() - start_time, 2)
     print("\n" + "=" * 80)
-    print(f"[+] HOÀN TẤT TOÀN BỘ PIPELINE TRONG {elapsed} GIÂY!")
+    print(f"[Pipeline] Hoàn tất toàn bộ quy trình trong {elapsed} giây!")
     print("    - Dữ liệu sạch & KPI : data/processed/")
     print("    - Báo cáo QA & LLM   : reports/")
     print("    - Biểu đồ PNG        : figures/")
     print("=" * 80)
 
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Chạy toàn bộ pipeline phân tích dữ liệu Inside Airbnb - Vienna")
-    parser.add_argument("--config", default="configs/vienna.yaml", help="Đường dẫn tới tệp cấu hình YAML")
-    parser.add_argument("--skip-llm", action="store_true", help="Không gọi Gemini API mới, sử dụng kết quả từ cache")
+    parser = argparse.ArgumentParser(description="Chạy quy trình xử lý và phân tích dữ liệu Inside Airbnb")
+    parser.add_argument("--config", default="configs/vienna.yaml", help="Đường dẫn tệp cấu hình YAML")
+    parser.add_argument("--skip-llm", action="store_true", help="Dùng kết quả có sẵn trong cache, không gọi API")
     args = parser.parse_args()
 
     run_full_pipeline(config_path=args.config, skip_llm=args.skip_llm)

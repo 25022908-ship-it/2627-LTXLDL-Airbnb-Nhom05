@@ -220,8 +220,10 @@ def compute_kpi5_sentiment_by_area(
     df_last_listings: pd.DataFrame,
     prefix: str = "llm",
 ) -> pd.DataFrame:
-    sent_col = f"{prefix}_sentiment" if f"{prefix}_sentiment" in df_text.columns else "base_sentiment"
-    lang_col = f"{prefix}_lang" if f"{prefix}_lang" in df_text.columns else "base_lang"
+    sent_col = f"{prefix}_sentiment"
+    lang_col = f"{prefix}_lang"
+    if sent_col not in df_text.columns or lang_col not in df_text.columns:
+        return pd.DataFrame()
 
     df_text = keep_valid_text_rows(df_text)
     df_map = df_last_listings[["id", "analysis_area", "neighbourhood_cleansed"]].drop_duplicates(subset=["id"])
@@ -252,8 +254,10 @@ def compute_kpi5_sentiment_by_area(
     return pd.DataFrame(rows).sort_values(by="diem_cam_xuc_rong_net_pct", ascending=False).reset_index(drop=True)
 
 def compute_kpi6_aspects_summary(df_text: pd.DataFrame, valid_aspects: list[str], prefix: str = "llm") -> pd.DataFrame:
-    pos_col = f"{prefix}_aspects_pos" if f"{prefix}_aspects_pos" in df_text.columns else "base_aspects_pos"
-    neg_col = f"{prefix}_aspects_neg" if f"{prefix}_aspects_neg" in df_text.columns else "base_aspects_neg"
+    pos_col = f"{prefix}_aspects_pos"
+    neg_col = f"{prefix}_aspects_neg"
+    if pos_col not in df_text.columns or neg_col not in df_text.columns:
+        return pd.DataFrame()
 
     df_text = keep_valid_text_rows(df_text)
     n_total = max(len(df_text), 1)
@@ -288,18 +292,17 @@ def compute_kpi6_aspects_summary(df_text: pd.DataFrame, valid_aspects: list[str]
     return pd.DataFrame(rows).sort_values(by="tong_luot_nhac", ascending=False).reset_index(drop=True)
 
 def build_kpi_definitions(city_label: str = "Vienna") -> pd.DataFrame:
-    stakeholder = f"Cơ quan quản lý du lịch & quy hoạch đô thị {city_label}"
     rows = [
-        ("KPI 1", "Giá thuê theo khu vực", "So sánh mặt bằng giá giữa các vùng", "median/mean/IQR của price_num theo analysis_area, mốc cuối, dòng sạch về giá", "EUR/đêm"),
-        ("KPI 2", "Tỷ lệ ngày không khả dụng", "Theo dõi mức khai thác theo thời gian và vùng (chỉ báo gần đúng, gồm ngày chủ nhà chặn)", "số ngày available='f' / tổng ngày lịch sạch", "%"),
-        ("KPI 3", "Động lực đánh giá", "Theo dõi tăng trưởng review và số phòng chưa có review", "tổng number_of_reviews; số phòng có number_of_reviews = 0", "lượt; phòng"),
-        ("KPI 4", "Chuyên nghiệp hóa chủ nhà", "Đo tỷ trọng chủ nhà nhiều phòng và chênh lệch giá", "tỷ lệ phòng có calculated_host_listings_count >= 2; median giá hai nhóm", "%; EUR/đêm"),
-        ("KPI 5", "Cảm xúc khách theo khu vực (LLM)", "So sánh mức hài lòng giữa các vùng", "tỷ lệ positive/mixed/negative trên bình luận LLM hợp lệ; net = positive - negative", "%"),
-        ("KPI 6", "Khen/chê theo khía cạnh (LLM)", "Xác định khía cạnh mạnh/yếu của dịch vụ", "số bình luận khen/chê mỗi khía cạnh / số bình luận hợp lệ", "lượt; %"),
-        ("KPI 7", "Giá theo quận (neighbourhood_cleansed)", "Dữ liệu cho bản đồ giá theo ranh giới hành chính", "median price_num theo neighbourhood_cleansed, mốc cuối", "EUR/đêm"),
+        ("KPI 1", "Giá thuê theo khu vực", "So sánh mặt bằng giá giữa các vùng", "median/mean/IQR của price_num theo analysis_area, mốc cuối, dòng sạch về giá", "EUR/đêm", f"Nhà đầu tư lưu trú & Nền tảng đặt phòng tại {city_label}"),
+        ("KPI 2", "Tỷ lệ ngày không khả dụng", "Theo dõi mức khai thác theo thời gian và vùng (chỉ báo gần đúng, gồm ngày chủ nhà chặn)", "số ngày available='f' / tổng ngày lịch sạch", "%", f"Cơ quan quản lý du lịch {city_label} (theo dõi mùa vụ)"),
+        ("KPI 3", "Động lực đánh giá", "Theo dõi tăng trưởng review và số phòng chưa có review", "tổng number_of_reviews; số phòng có number_of_reviews = 0", "lượt; phòng", f"Nền tảng đặt phòng & Ban quản lý thị trường {city_label}"),
+        ("KPI 4", "Chuyên nghiệp hóa chủ nhà", "Đo tỷ trọng chủ nhà nhiều phòng và chênh lệch giá", "tỷ lệ phòng có calculated_host_listings_count >= 2; median giá hai nhóm", "%; EUR/đêm", f"Cơ quan quy hoạch đô thị & nhà ở {city_label}"),
+        ("KPI 5", "Cảm xúc khách theo khu vực (LLM)", "So sánh mức hài lòng giữa các vùng", "tỷ lệ positive/mixed/negative trên bình luận LLM hợp lệ; net = positive - negative", "%", f"Hiệp hội chủ nhà & Đơn vị vận hành lưu trú {city_label}"),
+        ("KPI 6", "Khen/chê theo khía cạnh (LLM)", "Xác định khía cạnh mạnh/yếu của dịch vụ", "số bình luận khen/chê mỗi khía cạnh / số bình luận hợp lệ", "lượt; %", f"Chủ nhà & Đơn vị vận hành căn hộ {city_label}"),
+        ("KPI 7", "Giá theo quận (neighbourhood_cleansed)", "Dữ liệu cho bản đồ giá theo ranh giới hành chính", "median price_num theo neighbourhood_cleansed, mốc cuối", "EUR/đêm", f"Cơ quan quy hoạch đô thị & Nhà đầu tư bất động sản {city_label}"),
     ]
     return pd.DataFrame(
-        [{"kpi": k, "ten": t, "muc_tieu": g, "cong_thuc": f, "don_vi": u, "ben_lien_quan": stakeholder} for k, t, g, f, u in rows]
+        [{"kpi": k, "ten": t, "muc_tieu": g, "cong_thuc": f, "don_vi": u, "ben_lien_quan": s} for k, t, g, f, u, s in rows]
     )
 
 def run_kpi(config_path: str | Path = "configs/vienna.yaml") -> dict[str, pd.DataFrame]:

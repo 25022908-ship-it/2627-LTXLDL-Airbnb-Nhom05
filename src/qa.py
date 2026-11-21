@@ -2,6 +2,16 @@ import pandas as pd
 import yaml
 from pathlib import Path
 
+MACROMAN_FIX: dict[str, str] = {
+    "\x9a": "ö",
+    "\x8a": "ä",
+    "\x9f": "ü",
+    "§": "ß",
+    "\x80": "Ä",
+    "\x85": "Ö",
+    "\x86": "Ü",
+}
+
 # Định nghĩa điều kiện, lý do và hành động cho từng quy tắc để xuất vào reports/qa_report.csv
 RULE_DOCS: dict[str, tuple[str, str, str]] = {
     "flag_thieu_gia": ("price bị trống", "Không tính được KPI giá", "Gắn cờ; loại khỏi KPI giá"),
@@ -19,6 +29,8 @@ RULE_DOCS: dict[str, tuple[str, str, str]] = {
     "flag_sai_logic_dem": ("minimum_nights <= 0 hoặc > maximum_nights", "Ràng buộc số đêm phi logic", "Gắn cờ; loại khỏi KPI"),
     "flag_trung_ngay_phong": ("Trùng (listing_id, date)", "Một ngày bị đếm nhiều lần", "Gắn cờ; loại khỏi KPI"),
     "flag_lech_available": ("available ngoài {t, f}", "Danh mục lệch", "Gắn cờ; loại khỏi KPI"),
+    "flag_gia_ngoai_lai_iqr": ("price_num > Q3 + 1.5*IQR theo từng room_type", "Nhận diện phân khúc giá cao bất thường theo phân bố thực tế", "Chỉ ghi nhận, KHÔNG loại khỏi KPI"),
+    "flag_loi_ma_hoa_quan": ("neighbourhood_cleansed chứa ký tự lỗi bảng mã MacRoman (\\x80-\\x9f, §)", "Lỗi encoding từ nguồn dữ liệu gốc", "Gắn cờ ghi nhận và chuẩn hóa về UTF-8 chuẩn"),
     "flag_thieu_noi_dung": ("comments trống", "Không có văn bản để phân tích", "Gắn cờ; loại khỏi mẫu LLM/baseline"),
     "flag_ngay_tuong_lai": ("Ngày review sau ngày chụp dữ liệu", "Ngày không thể xảy ra", "Gắn cờ; loại khỏi KPI"),
     "flag_review_tu_dong": ("comments chứa thông báo tự động của Airbnb (EN: 'automated posting')", "Không phải đánh giá của khách, làm lệch cảm xúc", "Gắn cờ; loại khỏi mẫu LLM/baseline"),
@@ -41,6 +53,12 @@ def load_config(config_path: str | Path = "configs/vienna.yaml") -> dict:
 
 def empty_mask(df: pd.DataFrame) -> pd.Series:
     return pd.Series(False, index=df.index, dtype=bool)
+
+def fix_macroman_text(series: pd.Series) -> pd.Series:
+    s = series.astype("string")
+    for bad, good in MACROMAN_FIX.items():
+        s = s.str.replace(bad, good, regex=False)
+    return s
 
 def clean_price(val: object) -> float | None:
     if pd.isna(val):
@@ -89,6 +107,17 @@ def check_wrong_type_after_parse(df: pd.DataFrame, raw_col: str, parsed_col: str
     if raw_col not in df.columns or parsed_col not in df.columns:
         return empty_mask(df)
     return df[raw_col].notna() & df[parsed_col].isna()
+
+def check_price_iqr_outlier(df: pd.DataFrame) -> pd.Series:
+    if not {"price_num", "room_type"}.issubset(df.columns):
+        return empty_mask(df)
+    valid = df[df["price_num"].notna() & (df["price_num"] > 0)]
+    if valid.empty:
+        return empty_mask(df)
+    q = valid.groupby("room_type")["price_num"].quantile([0.25, 0.75]).unstack()
+    upper_fence = (q[0.75] + 1.5 * (q[0.75] - q[0.25])).to_dict()
+    fences = df["room_type"].map(upper_fence)
+    return df["price_num"].notna() & fences.notna() & (df["price_num"] > fences)
 
 def check_out_of_bounds_num(
     df: pd.DataFrame,
@@ -199,6 +228,8 @@ def build_listings_rules(df: pd.DataFrame, qa_cfg: dict, base_ids: set | None = 
         "flag_trung_id": check_duplicates(df, dedupe_keys),
         "flag_lech_loai_phong": check_invalid_category(df, "room_type", valid_rooms),
         "flag_lech_vung": area_invalid | check_missing_col(df, "neighbourhood_cleansed"),
+        "flag_gia_ngoai_lai_iqr": check_price_iqr_outlier(df),
+        "flag_loi_ma_hoa_quan": df["neighbourhood_cleansed"].fillna("").astype(str).str.contains(r"[\x80-\x9f§]", regex=True) if "neighbourhood_cleansed" in df.columns else empty_mask(df),
     }
     if base_ids is not None and "id" in df.columns:
         rules["flag_lech_id_giua_cac_moc"] = ~df["id"].isin(base_ids)
@@ -409,8 +440,10 @@ def process_listings_qa(
 
     rules = build_listings_rules(df, qa_cfg, base_ids)
     price_flags = ["flag_thieu_gia", "flag_sai_kieu_gia", "flag_gia_ngoai_lai"]
-    info_flags = ["flag_lech_id_giua_cac_moc"]
+    info_flags = ["flag_lech_id_giua_cac_moc", "flag_gia_ngoai_lai_iqr", "flag_loi_ma_hoa_quan"]
     df = attach_qa_flags(df, rules, price_flags=price_flags, info_flags=info_flags)
+    if "neighbourhood_cleansed" in df.columns:
+        df["neighbourhood_cleansed"] = fix_macroman_text(df["neighbourhood_cleansed"])
     check_listings_expectations(df, val_cfg, snap_idx, is_last)
 
     kpi_pre, kpi_post = compute_listings_kpi_impact(df)

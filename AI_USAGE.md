@@ -11,9 +11,10 @@ Báo cáo minh bạch việc sử dụng Trí tuệ Nhân tạo (AI) của **Nh�
    - Hỗ trợ viết khung mã nguồn ban đầu (boilerplate) cho các mô-đun `src/download.py`, `src/filter.py`, `src/qa.py`, `src/baseline.py`, `src/llm.py`, `src/evaluate.py`, `src/kpi.py`, `src/viz.py` và `run_pipeline.py`.
    - Gỡ lỗi ngoại lệ (`AttributeError`, `KeyError`, `MergeError`, cảnh báo font/Regex).
 2. **Claude:**
+   - Đưa ra một số gợi ý cho các lệnh code 
    - Rà soát lỗi cú pháp và lỗi logic; đối chiếu code với đề bài tập lớn và nội dung các bài giảng (Bài 5–14); gợi ý hướng sửa để nhóm tự chỉnh và gửi lại kiểm tra.
    - Tư vấn chọn dạng biểu đồ theo Bài 12–13 và giải thích bảng kết quả đánh giá.
-3. **Gemini API (`gemini-3.5-flash-lite` qua thư viện `google-genai` trong `src/llm.py`):**
+4. **Gemini API (`gemini-3.5-flash-lite` qua thư viện `google-genai` trong `src/llm.py`):**
    - Dùng trực tiếp trong quy trình để trích xuất có cấu trúc (cảm xúc `sentiment`, khía cạnh khen `aspects_pos`, khía cạnh chê `aspects_neg`, ngôn ngữ `lang`) trên tập 1.000 bình luận mẫu.
 
 ---

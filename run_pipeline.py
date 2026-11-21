@@ -42,12 +42,6 @@ def run_full_pipeline(config_path: str = "configs/vienna.yaml", skip_llm: bool =
     print_step_banner("[Bước 1] Lọc dữ liệu theo danh sách phân công...")
     run_filter(config_path=config_path)
 
-    # Kiểm tra nhanh cấu trúc cột nếu có script check_data.py
-    check_script = Path("src/check_data.py")
-    if check_script.exists():
-        print_step_banner("[Bước 1b] Kiểm tra cấu trúc cột dữ liệu sau lọc...")
-        subprocess.run([sys.executable, str(check_script)], check=False)
-
     # Làm sạch và gắn cờ kiểm định chất lượng (QA)
     print_step_banner("[Bước 2] Làm sạch và kiểm định chất lượng dữ liệu (QA)...")
     run_qa(config_path=config_path)

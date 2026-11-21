@@ -1,6 +1,7 @@
 import json
 import yaml
 import pandas as pd
+import math
 from pathlib import Path
 
 VALID_SENTIMENTS = ["positive", "mixed", "negative"]
@@ -78,6 +79,37 @@ def compute_macro_f1(pred_s: pd.Series, true_s: pd.Series, labels: list[str]) ->
             f1_list.append(2 * tp / denom)
     return round(float(sum(f1_list) / len(f1_list)), 3) if f1_list else 0.0
 
+def wilson_ci_95(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
+    if n == 0:
+        return 0.0, 0.0
+    p = k / n
+    denom = 1.0 + (z ** 2) / n
+    center = p + (z ** 2) / (2.0 * n)
+    margin = z * math.sqrt((p * (1.0 - p) + (z ** 2) / (4.0 * n)) / n)
+    low = max(0.0, (center - margin) / denom)
+    high = min(1.0, (center + margin) / denom)
+    return round(low, 3), round(high, 3)
+
+def compute_class_recall_with_ci(pred_s: pd.Series, true_s: pd.Series, target_label: str) -> str:
+    p_clean = pred_s.map(lambda x: normalize_label_str(x, ""))
+    t_clean = true_s.map(lambda x: normalize_label_str(x, ""))
+    n_true = int((t_clean == target_label).sum())
+    tp = int(((p_clean == target_label) & (t_clean == target_label)).sum())
+    if n_true == 0:
+        return "0/0"
+    low, high = wilson_ci_95(tp, n_true)
+    return f"{tp}/{n_true} ({tp/n_true:.3f}, CI95%: [{low}, {high}])"
+
+def compute_accuracy_with_ci(pred_s: pd.Series, true_s: pd.Series) -> str:
+    n = len(true_s)
+    if n == 0:
+        return "0.000 [0.000, 0.000]"
+    p_clean = pred_s.map(lambda x: normalize_label_str(x, ""))
+    t_clean = true_s.map(lambda x: normalize_label_str(x, ""))
+    k = int((p_clean == t_clean).sum())
+    low, high = wilson_ci_95(k, n)
+    return f"{k/n:.3f} [{low}, {high}]"
+
 def majority_baseline_accuracy(true_s: pd.Series) -> float:
     # Mốc tối thiểu khi luôn đoán lớp chiếm đa số trong tập nhãn tay
     t_clean = true_s.map(lambda x: normalize_label_str(x, ""))
@@ -140,6 +172,52 @@ def count_city_reviews(raw_path: Path, chunksize: int = 500_000) -> int | None:
     for chunk in pd.read_csv(raw_path, compression="gzip", usecols=["id"], chunksize=chunksize):
         total += len(chunk)
     return total
+
+def evaluate_inter_annotator_agreement(
+    raw_dir: Path = Path("data/samples/raw_annotations"),
+    master_df: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Tính độ đồng thuận giữa các thành viên gán nhãn độc lập (nếu có thư mục raw_annotations)."""
+    csv_files = sorted(raw_dir.glob("*.csv"))
+    if len(csv_files) < 2:
+        return pd.DataFrame()
+
+    # Dùng comments làm khóa phụ nếu ID bị Excel làm tròn ký hiệu khoa học
+    master_comments = master_df["comments"].tolist() if (master_df is not None and "comments" in master_df.columns) else None
+
+    dfs = {}
+    for idx, f in enumerate(csv_files, 1):
+        df = pd.read_csv(f, encoding="utf-8-sig")
+        if master_comments is not None and "comments" in df.columns and set(df["comments"]) == set(master_comments):
+            df = df.drop_duplicates(subset=["comments"]).set_index("comments").loc[master_comments].reset_index()
+        else:
+            df = df.sort_values("id").reset_index(drop=True)
+        df["sent_norm"] = df["human_sentiment"].map(normalize_label_str).replace({"neutral": "mixed"})
+        dfs[f"A{idx}"] = df
+
+    base = pd.DataFrame({"row_idx": range(len(next(iter(dfs.values()))))})
+    for name, df in dfs.items():
+        base[f"{name}_sent"] = df["sent_norm"]
+        base[f"{name}_sets"] = polar_aspect_sets(df, "human_aspects_pos", "human_aspects_neg")
+
+    sent_cols = [f"{name}_sent" for name in dfs]
+    exact_all = int((base[sent_cols].nunique(axis=1) == 1).sum())
+
+    pair_accs, pair_f1s = [], []
+    names = list(dfs.keys())
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            pair_accs.append(float((base[f"{names[i]}_sent"] == base[f"{names[j]}_sent"]).mean()))
+            _, _, f1 = compute_micro_f1_from_sets(base[f"{names[i]}_sets"].tolist(), base[f"{names[j]}_sets"].tolist())
+            pair_f1s.append(f1)
+
+    return pd.DataFrame([{
+        "so_nguoi_gan": len(names),
+        "so_cau": len(base),
+        "dong_thuan_tuyet_doi_sent": f"{exact_all}/{len(base)} ({exact_all/len(base)*100:.1f}%)",
+        "dong_thuan_cap_sent_tb": round(sum(pair_accs) / len(pair_accs), 3),
+        "f1_khia_canh_cap_tb": round(sum(pair_f1s) / len(pair_f1s), 3),
+    }])
 
 def estimate_api_token_cost(
     df_sample: pd.DataFrame,
@@ -278,6 +356,8 @@ def build_eval_summary_table(df_eval: pd.DataFrame, llm_label: str = "LLM (Gemin
             "Số câu chấm": len(eval_target),
             "Cảm xúc (accuracy)": compute_accuracy(eval_target["base_sentiment"], eval_target["human_sentiment"]),
             "Cảm xúc (macro-F1)": compute_macro_f1(eval_target["base_sentiment"], eval_target["human_sentiment"], VALID_SENTIMENTS),
+            "Cảm xúc (accuracy CI 95%)": compute_accuracy_with_ci(eval_target["base_sentiment"], eval_target["human_sentiment"]),
+            "Recall lớp mixed (CI 95%)": compute_class_recall_with_ci(eval_target["base_sentiment"], eval_target["human_sentiment"], "mixed"),
             "Khía cạnh (F1)": compute_aspect_f1(
                 eval_target["base_aspects_pos"], eval_target["base_aspects_neg"],
                 eval_target["human_aspects_pos"], eval_target["human_aspects_neg"],
@@ -298,6 +378,8 @@ def build_eval_summary_table(df_eval: pd.DataFrame, llm_label: str = "LLM (Gemin
             "Số câu chấm": len(valid_llm),
             "Cảm xúc (accuracy)": compute_accuracy(valid_llm["llm_sentiment"], valid_llm["human_sentiment"]),
             "Cảm xúc (macro-F1)": compute_macro_f1(valid_llm["llm_sentiment"], valid_llm["human_sentiment"], VALID_SENTIMENTS),
+            "Cảm xúc (accuracy CI 95%)": compute_accuracy_with_ci(eval_target["llm_sentiment"], eval_target["human_sentiment"]),
+            "Recall lớp mixed (CI 95%)": compute_class_recall_with_ci(eval_target["llm_sentiment"], eval_target["human_sentiment"], "mixed"),
             "Khía cạnh (F1)": compute_aspect_f1(
                 valid_llm["llm_aspects_pos"], valid_llm["llm_aspects_neg"],
                 valid_llm["human_aspects_pos"], valid_llm["human_aspects_neg"],
@@ -315,6 +397,40 @@ def build_eval_summary_table(df_eval: pd.DataFrame, llm_label: str = "LLM (Gemin
 
 def polar_aspect_sets(df: pd.DataFrame, pos_col: str, neg_col: str) -> list[set[str]]:
     return [build_combined_aspect_set(p, n, polar=True) for p, n in zip(df[pos_col], df[neg_col])]
+
+def classify_error_reason(row: pd.Series) -> str:
+    """Phân loại nguyên nhân lệch giữa dự đoán (LLM/Baseline) và nhãn tay."""
+    h_sent = normalize_label_str(row.get("human_sentiment", ""))
+    l_sent = normalize_label_str(row.get("llm_sentiment", ""))
+    b_sent = normalize_label_str(row.get("base_sentiment", ""))
+
+    # 1. Nhóm lỗi sai cảm xúc của LLM (ưu tiên phân tích sâu nhất)
+    if bool(row.get("err_llm_sentiment")):
+        if h_sent == "mixed" and l_sent == "positive":
+            return "llm_bo_sot_phan_nan_nhe_mixed_vs_pos"
+        if h_sent == "mixed" and l_sent == "negative":
+            return "llm_thien_lech_tieu_cuc_mixed_vs_neg"
+        if h_sent == "positive" and l_sent == "mixed":
+            return "llm_nhay_cam_phan_nan_pos_vs_mixed"
+        return f"llm_sai_cam_xuc_{h_sent}_vs_{l_sent}"
+
+    # 2. Nhóm LLM đúng cảm xúc nhưng lệch tập khía cạnh (so với nhãn tay)
+    if bool(row.get("err_llm_aspects")):
+        h_set = build_combined_aspect_set(row.get("human_aspects_pos"), row.get("human_aspects_neg"), polar=True)
+        l_set = build_combined_aspect_set(row.get("llm_aspects_pos"), row.get("llm_aspects_neg"), polar=True)
+        if len(l_set) > len(h_set) and h_set.issubset(l_set):
+            return "llm_suy_dien_them_khia_canh_ham_y"
+        if len(l_set) < len(h_set) and l_set.issubset(h_set):
+            return "llm_bo_sot_khia_canh_chi_tiet"
+        return "llm_lech_cuc_tinh_hoac_ranh_gioi_khia_canh"
+
+    # 3. Nhóm LLM hoàn toàn khớp nhãn tay, chỉ có Baseline từ khóa bị sai
+    if bool(row.get("err_base_sentiment")) or bool(row.get("err_base_aspects")):
+        if h_sent != b_sent:
+            return "chi_baseline_sai_cam_xuc_do_tu_khoa_ngu_canh"
+        return "chi_baseline_sai_khia_canh_do_tu_khoa_ngu_canh"
+
+    return "khac"
 
 def extract_error_cases(df_eval: pd.DataFrame) -> pd.DataFrame:
     # Lọc các dòng có sự khác biệt giữa dự đoán và nhãn tay; để trống cột error_type cho nhóm tự điền
@@ -336,13 +452,13 @@ def extract_error_cases(df_eval: pd.DataFrame) -> pd.DataFrame:
     else:
         df_out["err_llm_aspects"] = False
 
-    df_out["error_type"] = ""
-
     error_mask = (
         df_out["err_base_sentiment"] | df_out["err_llm_sentiment"] | df_out["disagree_base_vs_llm"]
         | df_out["err_base_aspects"] | df_out["err_llm_aspects"]
     )
-    return df_out[error_mask].reset_index(drop=True)
+    err_cases = df_out[error_mask].reset_index(drop=True)
+    err_cases["error_type"] = err_cases.apply(classify_error_reason, axis=1)
+    return err_cases
 
 def build_error_summary(df_eval: pd.DataFrame) -> pd.DataFrame:
     n = len(df_eval)
@@ -420,8 +536,24 @@ def run_evaluate(config_path: str | Path = "configs/vienna.yaml") -> pd.DataFram
     error_df = preserve_existing_error_types(error_df, error_path)
     error_df.to_csv(error_path, index=False, encoding="utf-8-sig")
 
-    print(f"\n[*] Phân tích lỗi (Error Analysis): Tìm thấy {len(error_df)}/{len(df_eval)} câu có sự khác biệt.")
-    print("    Hãy điền cột error_type trong reports/llm_error_analysis.csv rồi thống kê theo loại lỗi.")
+    err_type_stats = (
+        error_df["error_type"]
+        .value_counts()
+        .rename_axis("error_type")
+        .reset_index(name="so_luong")
+    )
+    err_type_stats["ty_le_pct"] = (err_type_stats["so_luong"] / max(len(error_df), 1) * 100).round(1)
+    err_type_stats.to_csv(reports_dir / "llm_error_types_summary.csv", index=False, encoding="utf-8-sig")
+
+    iaa_df = evaluate_inter_annotator_agreement(Path("data/samples/raw_annotations"), master_df=df_human)
+    if not iaa_df.empty:
+        iaa_df.to_csv(reports_dir / "inter_annotator_agreement.csv", index=False, encoding="utf-8-sig")
+        print("\n[*] Độ đồng thuận giữa các thành viên gán nhãn độc lập:")
+        print(iaa_df.to_string(index=False))
+
+    print(f"\n[*] Phân tích lỗi (Error Analysis): Đã trích xuất và phân loại {len(error_df)}/{len(df_eval)} câu lệch.")
+    print(err_type_stats.to_string(index=False))
+    
     for _, row in error_df.head(5).iterrows():
         snippet = str(row.get("comments", "")).replace("\n", " ")[:100]
         print(f"    - ID {row['id']}: \"{snippet}...\"")

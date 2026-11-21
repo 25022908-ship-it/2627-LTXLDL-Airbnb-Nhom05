@@ -116,9 +116,9 @@ Sau khi chạy xong `run_pipeline.py`, toàn bộ số liệu và hình ảnh đ
 
 | Nhóm kết quả | Đường dẫn tệp | Nội dung chính |
 | :--- | :--- | :--- |
-| **Kiểm định chất lượng (QA)** | `reports/qa_report.csv` | Số dòng vi phạm từng quy tắc QA và giá trị KPI trước/sau làm sạch |
-| **Đánh giá mô hình LLM** | `reports/llm_eval_report.csv` | Bảng điểm Accuracy, Macro-F1, Micro-F1 của Baseline và Gemini LLM trên 100 nhãn tay |
-| **Phân tích lỗi & Ma trận nhầm lẫn** | `reports/llm_error_analysis.csv`<br>`reports/llm_error_summary.csv`<br>`reports/confusion_*_sentiment.csv` | Các câu dự đoán lệch so với nhãn tay, phân loại nguyên nhân lỗi và ma trận nhầm lẫn |
-| **Ước tính chi phí API** | `reports/llm_cost_estimate.csv` | Lượng token trung bình thực tế và chi phí ước tính cho toàn bộ review thành phố |
-| **Bảng chỉ số KPI** | `data/processed/kpi_1_price_by_area.csv` → `kpi_7_price_by_neighbourhood.csv`<br>`reports/kpi_definitions.csv` | 7 bảng số liệu KPI (giá thuê, tỷ lệ khóa lịch, tăng trưởng review, chủ nhà nhiều phòng, cảm xúc & khía cạnh từ LLM) và bảng định nghĩa KPI |
-| **Biểu đồ trực quan hóa** | `figures/fig1_price_by_area.png`<br>`figures/fig1b_price_boxplot_log.png`<br>`figures/fig2_occupancy_trend.png`<br>`figures/fig3_review_activity.png`<br>`figures/fig3b_monthly_reviews.png`<br>`figures/fig4_host_professionalization.png`<br>`figures/fig5_llm_sentiment_by_area.png`<br>`figures/fig6_llm_aspects_diverging.png`<br>`figures/fig7_price_map.png` | Bộ 9 biểu đồ sử dụng trong báo cáo phân tích |
+| **Kiểm định chất lượng (QA)** | `reports/qa_report.csv` | Số dòng vi phạm từng quy tắc QA (kể cả cờ ngoại lai IQR và lỗi mã hóa MacRoman) và giá trị KPI trước/sau làm sạch |
+| **Đánh giá mô hình LLM** | `reports/llm_eval_report.csv` | Bảng điểm Accuracy, Macro-F1, Micro-F1, Recall lớp `mixed` kèm khoảng tin cậy 95% (Wilson CI) của Baseline và Gemini LLM trên 100 nhãn tay |
+| **Phân tích lỗi & Ma trận nhầm lẫn** | `reports/llm_error_analysis.csv`<br>`reports/llm_error_types_summary.csv`<br>`reports/llm_error_summary.csv`<br>`reports/confusion_*_sentiment.csv` | Chi tiết các câu dự đoán lệch so với nhãn tay, phân loại nguyên nhân lỗi (`error_type`), thống kê tỷ lệ từng nhóm lỗi và ma trận nhầm lẫn |
+| **Ước tính chi phí API** | `reports/llm_cost_estimate.csv` | Lượng token trung bình thực tế từ log và chi phí ước tính cho toàn bộ review thành phố |
+| **Bảng chỉ số KPI** | `data/processed/kpi_1_price_by_area.csv` → `kpi_7_price_by_neighbourhood.csv`<br>`reports/kpi_definitions.csv` | 7 bảng số liệu KPI (giá thuê, tỷ lệ ngày không trống xấp xỉ, tăng trưởng review, chủ nhà nhiều phòng, cảm xúc & khía cạnh từ LLM) và bảng định nghĩa KPI gắn với từng bên liên quan |
+| **Biểu đồ trực quan hóa** | `figures/fig1_price_by_area.png`<br>`figures/fig1b_price_boxplot_log.png`<br>`figures/fig2_occupancy_trend.png`<br>`figures/fig3_review_activity.png`<br>`figures/fig3b_monthly_reviews.png`<br>`figures/fig4_host_professionalization.png`<br>`figures/fig5_llm_sentiment_by_area.png`<br>`figures/fig6_llm_aspects_diverging.png`<br>`figures/fig7_price_map.png` | Bộ 9 biểu đồ sử dụng trực tiếp trong báo cáo phân tích |

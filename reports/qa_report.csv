@@ -10,6 +10,8 @@
 2025-09-14,listings,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
 2025-09-14,listings,flag_lech_loai_phong,room_type ngoài 4 loại chuẩn,Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
 2025-09-14,listings,flag_lech_vung,Thiếu neighbourhood_cleansed hoặc analysis_area ngoài danh mục,Không gán được vùng phân tích,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_gia_ngoai_lai_iqr,price_num > Q3 + 1.5*IQR theo từng room_type,Nhận diện phân khúc giá cao bất thường theo phân bố thực tế,"Chỉ ghi nhận, KHÔNG loại khỏi KPI",57,5.7,price_median (mean),100.0 (127.65),100.0 (127.65)
+2025-09-14,listings,flag_loi_ma_hoa_quan,"neighbourhood_cleansed chứa ký tự lỗi bảng mã MacRoman (\x80-\x9f, §)",Lỗi encoding từ nguồn dữ liệu gốc,Gắn cờ ghi nhận và chuẩn hóa về UTF-8 chuẩn,207,20.7,price_median (mean),100.0 (127.65),100.0 (127.65)
 2025-09-14,listings,flag_lech_id_giua_cac_moc,id không có ở mốc đầu tiên,Listing mới xuất hiện sau mốc đầu (không phải lỗi),"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,price_median (mean),100.0 (127.65),100.0 (127.65)
 2025-09-14,listings,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean_price = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,46,4.6,price_median (mean),100.0 (127.65),100.0 (127.65)
 2025-09-14,calendar,flag_thieu_available,available bị trống,Không biết ngày trống hay đã khóa,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,38.75,38.75
@@ -36,6 +38,8 @@
 2025-12-16,listings,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
 2025-12-16,listings,flag_lech_loai_phong,room_type ngoài 4 loại chuẩn,Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
 2025-12-16,listings,flag_lech_vung,Thiếu neighbourhood_cleansed hoặc analysis_area ngoài danh mục,Không gán được vùng phân tích,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_gia_ngoai_lai_iqr,price_num > Q3 + 1.5*IQR theo từng room_type,Nhận diện phân khúc giá cao bất thường theo phân bố thực tế,"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
+2025-12-16,listings,flag_loi_ma_hoa_quan,"neighbourhood_cleansed chứa ký tự lỗi bảng mã MacRoman (\x80-\x9f, §)",Lỗi encoding từ nguồn dữ liệu gốc,Gắn cờ ghi nhận và chuẩn hóa về UTF-8 chuẩn,207,20.7,price_median (mean),NaN (NaN),NaN (NaN)
 2025-12-16,listings,flag_lech_id_giua_cac_moc,id không có ở mốc đầu tiên,Listing mới xuất hiện sau mốc đầu (không phải lỗi),"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,price_median (mean),NaN (NaN),NaN (NaN)
 2025-12-16,listings,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean_price = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,1000,100.0,price_median (mean),NaN (NaN),NaN (NaN)
 2025-12-16,calendar,flag_thieu_available,available bị trống,Không biết ngày trống hay đã khóa,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.69,37.69
@@ -62,6 +66,8 @@
 2026-03-24,listings,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
 2026-03-24,listings,flag_lech_loai_phong,room_type ngoài 4 loại chuẩn,Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
 2026-03-24,listings,flag_lech_vung,Thiếu neighbourhood_cleansed hoặc analysis_area ngoài danh mục,Không gán được vùng phân tích,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_gia_ngoai_lai_iqr,price_num > Q3 + 1.5*IQR theo từng room_type,Nhận diện phân khúc giá cao bất thường theo phân bố thực tế,"Chỉ ghi nhận, KHÔNG loại khỏi KPI",59,5.9,price_median (mean),132.25 (158.2),132.25 (158.2)
+2026-03-24,listings,flag_loi_ma_hoa_quan,"neighbourhood_cleansed chứa ký tự lỗi bảng mã MacRoman (\x80-\x9f, §)",Lỗi encoding từ nguồn dữ liệu gốc,Gắn cờ ghi nhận và chuẩn hóa về UTF-8 chuẩn,207,20.7,price_median (mean),132.25 (158.2),132.25 (158.2)
 2026-03-24,listings,flag_lech_id_giua_cac_moc,id không có ở mốc đầu tiên,Listing mới xuất hiện sau mốc đầu (không phải lỗi),"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,price_median (mean),132.25 (158.2),132.25 (158.2)
 2026-03-24,listings,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean_price = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,16,1.6,price_median (mean),132.25 (158.2),132.25 (158.2)
 2026-03-24,calendar,flag_thieu_available,available bị trống,Không biết ngày trống hay đã khóa,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,40.19,40.19
@@ -88,6 +94,8 @@
 2026-06-20,listings,flag_trung_id,Trùng khóa định danh (dedupe_keys trong config; id với reviews),Đếm lặp một đối tượng,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
 2026-06-20,listings,flag_lech_loai_phong,room_type ngoài 4 loại chuẩn,Danh mục lệch,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
 2026-06-20,listings,flag_lech_vung,Thiếu neighbourhood_cleansed hoặc analysis_area ngoài danh mục,Không gán được vùng phân tích,Gắn cờ; loại khỏi KPI,0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_gia_ngoai_lai_iqr,price_num > Q3 + 1.5*IQR theo từng room_type,Nhận diện phân khúc giá cao bất thường theo phân bố thực tế,"Chỉ ghi nhận, KHÔNG loại khỏi KPI",71,7.1,price_median (mean),131.29 (158.0),131.29 (158.0)
+2026-06-20,listings,flag_loi_ma_hoa_quan,"neighbourhood_cleansed chứa ký tự lỗi bảng mã MacRoman (\x80-\x9f, §)",Lỗi encoding từ nguồn dữ liệu gốc,Gắn cờ ghi nhận và chuẩn hóa về UTF-8 chuẩn,207,20.7,price_median (mean),131.29 (158.0),131.29 (158.0)
 2026-06-20,listings,flag_lech_id_giua_cac_moc,id không có ở mốc đầu tiên,Listing mới xuất hiện sau mốc đầu (không phải lỗi),"Chỉ ghi nhận, KHÔNG loại khỏi KPI",0,0.0,price_median (mean),131.29 (158.0),131.29 (158.0)
 2026-06-20,listings,TONG_HOP_QA,Dòng vi phạm ít nhất một quy tắc loại dòng (is_clean_price = False),Tác động gộp của cả bộ quy tắc,Loại khỏi KPI,20,2.0,price_median (mean),131.29 (158.0),131.29 (158.0)
 2026-06-20,calendar,flag_thieu_available,available bị trống,Không biết ngày trống hay đã khóa,Gắn cờ; loại khỏi KPI,0,0.0,unavailable_rate_pct,37.04,37.04

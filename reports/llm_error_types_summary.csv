@@ -1,0 +1,8 @@
+﻿error_type,so_luong,ty_le_pct
+chi_baseline_sai_khia_canh_do_tu_khoa_ngu_canh,40,50.0
+llm_bo_sot_khia_canh_chi_tiet,21,26.2
+llm_bo_sot_phan_nan_nhe_mixed_vs_pos,9,11.2
+llm_suy_dien_them_khia_canh_ham_y,4,5.0
+chi_baseline_sai_cam_xuc_do_tu_khoa_ngu_canh,3,3.8
+llm_lech_cuc_tinh_hoac_ranh_gioi_khia_canh,2,2.5
+llm_thien_lech_tieu_cuc_mixed_vs_neg,1,1.2

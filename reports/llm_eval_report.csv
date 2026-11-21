@@ -1,4 +1,4 @@
-﻿Phương pháp,Số câu chấm,Cảm xúc (accuracy),Cảm xúc (macro-F1),Khía cạnh (F1),Khía cạnh kèm khen/chê (F1),Ngôn ngữ (accuracy)
-Luôn đoán lớp cảm xúc phổ biến nhất (mốc tối thiểu),100,0.81,,,,
-Đối chứng bằng từ khoá (Baseline),100,0.85,0.689,0.827,0.78,1.0
-LLM (gemini-3.5-flash-lite),100,0.9,0.743,0.946,0.921,1.0
+﻿Phương pháp,Số câu chấm,Cảm xúc (accuracy),Cảm xúc (macro-F1),Khía cạnh (F1),Khía cạnh kèm khen/chê (F1),Ngôn ngữ (accuracy),Cảm xúc (accuracy CI 95%),Recall lớp mixed (CI 95%)
+Luôn đoán lớp cảm xúc phổ biến nhất (mốc tối thiểu),100,0.81,,,,,,
+Đối chứng bằng từ khoá (Baseline),100,0.85,0.689,0.827,0.78,1.0,"0.850 [0.767, 0.907]","7/18 (0.389, CI95%: [0.203, 0.614])"
+LLM (gemini-3.5-flash-lite),100,0.9,0.743,0.946,0.921,1.0,"0.900 [0.826, 0.945]","8/18 (0.444, CI95%: [0.246, 0.663])"

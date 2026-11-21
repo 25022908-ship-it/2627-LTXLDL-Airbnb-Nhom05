@@ -1,5 +1,6 @@
 import json
 import math
+import unicodedata
 import yaml
 import pandas as pd
 import matplotlib
@@ -566,6 +567,20 @@ def load_geojson(geojson_path: Path) -> dict | None:
     with open(geojson_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+# Cùng bảng sửa lỗi mã hóa với src/qa.py (không import để vẫn chạy được `python src/viz.py`)
+MACROMAN_FIX = {
+    "\x9a": "ö", "\x8a": "ä", "\x9f": "ü", "§": "ß",
+    "\x80": "Ä", "\x85": "Ö", "\x86": "Ü",
+}
+
+def normalize_area_name(name: object) -> str:
+    if name is None or (isinstance(name, float) and math.isnan(name)):
+        return ""
+    text = str(name)
+    for bad, good in MACROMAN_FIX.items():
+        text = text.replace(bad, good)
+    return unicodedata.normalize("NFC", text).strip().casefold()
+
 def feature_rings(feature: dict) -> list[list]:
     geom = feature.get("geometry") or {}
     coords = geom.get("coordinates", [])
@@ -588,7 +603,18 @@ def plot_fig7_price_map(
     valid_df = df_kpi7[~df_kpi7["canh_bao_n_nho"]] if "canh_bao_n_nho" in df_kpi7.columns else df_kpi7
     if valid_df.empty:
         valid_df = df_kpi7
-    price_by_name = dict(zip(valid_df["neighbourhood_cleansed"], valid_df["gia_trung_vi_eur"]))
+    # Chuẩn hóa tên ở cả hai phía: geojson gốc có thể còn lỗi mã hóa MacRoman như bảng listings
+    price_by_name = {
+        normalize_area_name(k): v
+        for k, v in zip(valid_df["neighbourhood_cleansed"], valid_df["gia_trung_vi_eur"])
+    }
+    geo_names = {
+        normalize_area_name((f.get("properties") or {}).get("neighbourhood"))
+        for f in geojson.get("features", [])
+    }
+    unmatched = sorted(set(price_by_name) - geo_names)
+    if unmatched:
+        print(f"    [!] Quận có trong KPI 7 nhưng không khớp tên trong geojson: {unmatched}")
 
     vmin = float(valid_df["gia_trung_vi_eur"].min())
     vmax = float(valid_df["gia_trung_vi_eur"].max())
@@ -598,7 +624,7 @@ def plot_fig7_price_map(
     fig, ax = plt.subplots(figsize=(9.5, 5.8))
     patches, facecolors, all_lats = [], [], []
     for feat in geojson.get("features", []):
-        name = (feat.get("properties") or {}).get("neighbourhood")
+        name = normalize_area_name((feat.get("properties") or {}).get("neighbourhood"))
         val = price_by_name.get(name, float("nan"))
         color = "#cfd8dc" if math.isnan(val) else cmap(norm(val))
         for ring in feature_rings(feat):

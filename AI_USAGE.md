@@ -77,7 +77,7 @@ Báo cáo minh bạch việc sử dụng Trí tuệ Nhân tạo (AI) của **Nh�
    - `reports/qa_report.csv` xuất đủ tên quy tắc, điều kiện, lý do, hành động và KPI trước/sau QA (kể cả quy tắc có 0 vi phạm).
    - Mọi phép `merge` trong `filter.py`, `evaluate.py`, `kpi.py` dùng `validate=...` hoặc đối chiếu số dòng trước/sau.
 3. **Gán nhãn thủ công độc lập và đo lường khách quan (`src/evaluate.py`):**
-   - Bốn thành viên gán nhãn độc lập cho cùng bộ 100 câu trong `data/samples/nhan_tay_100.csv` (đồng thuận 85/100 câu, thảo luận chốt các câu bất đồng), không điền sẵn gợi ý từ mô hình để tránh thiên lệch neo.
+   - Bốn thành viên gán nhãn độc lập cho cùng bộ 100 câu trong `data/samples/nhan_tay_100.csv` (đồng thuận 82/100 câu, thảo luận chốt các câu bất đồng), không điền sẵn gợi ý từ mô hình để tránh thiên lệch neo.
    - `evaluate.py` đo Accuracy, Macro-F1, Micro-F1 của Baseline và Gemini trên cùng tập 100 câu, xuất ma trận nhầm lẫn và phân loại nguyên nhân sai trong `reports/llm_error_analysis.csv`.
 4. **Rà soát chéo bằng AI rồi tự sửa và kiểm lại:**
    - Mỗi lần AI nêu lỗi, nhóm tự sửa, chạy lại `python run_pipeline.py --skip-llm`, rồi mới gửi lại phần đã đổi để rà soát; các tiêu đề hình được đối chiếu thủ công với `kpi_*.csv`.

@@ -184,19 +184,21 @@ def plot_fig2_occupancy_trend(df_kpi2: pd.DataFrame, fig_dir: Path, city: str = 
             color=PALETTE["negative"],
             label=f"Toàn {city} (Trung bình)",
         )
-        for _, r in df_all.iterrows():
+        for idx_pt, (_, r) in enumerate(df_all.iterrows()):
+            is_last_pt = idx_pt == len(df_all) - 1
             ax.annotate(
                 f"{r[value_col]:.1f}%",
                 (r["moc_thoi_gian"], r[value_col]),
                 textcoords="offset points",
-                xytext=(0, 8),
+                xytext=(-6, 10) if is_last_pt else (0, 8),
                 ha="center",
                 fontweight="bold",
                 color=PALETTE["negative"],
+                bbox={"boxstyle": "round,pad=0.18", "fc": "white", "ec": "none", "alpha": 0.85},
             )
         occ_min = float(df_all[value_col].min())
         occ_max = float(df_all[value_col].max())
-        title_str = f"Tỷ lệ ngày không trống toàn {city} dao động từ {occ_min:.1f}% đến {occ_max:.1f}% qua {n_snapshots} mốc"
+        title_str = f"Tỷ lệ ngày không trống (xấp xỉ qua lịch khóa) toàn {city} từ {occ_min:.1f}% đến {occ_max:.1f}% qua {n_snapshots} mốc"
     else:
         title_str = f"Diễn biến tỷ lệ ngày không trống theo khu vực qua {n_snapshots} mốc tại {city}"
 
@@ -308,7 +310,7 @@ def plot_fig3b_monthly_reviews(proc_dir: Path, fig_dir: Path, city: str = "", la
         return
 
     ts = df.set_index(date_col).sort_index()
-    monthly_counts = ts.resample("ME").size()
+    monthly_counts = ts.resample("MS").size()
 
     rolling_3m_full = monthly_counts.rolling(3, min_periods=3).mean()
     monthly_recent = monthly_counts.tail(36)
@@ -364,7 +366,7 @@ def plot_fig3b_monthly_reviews(proc_dir: Path, fig_dir: Path, city: str = "", la
     save_figure_safely(
         fig,
         fig_dir / "fig3b_monthly_reviews.png",
-        f"Nguồn: Inside Airbnb ({city}), mốc {last_snap} (tính trên tập mẫu đánh giá, n={len(df):,}).{note_snap}",
+        f"Nguồn: Inside Airbnb ({city}), tập mẫu đánh giá cố định (n={len(df):,}).{note_snap}",
     )
 
 def plot_fig4_host_professionalization(df_kpi4: pd.DataFrame, fig_dir: Path, city: str = "", last_snap: str = "") -> None:
@@ -484,7 +486,8 @@ def plot_fig5_llm_sentiment_by_area(df_kpi5: pd.DataFrame, fig_dir: Path, city: 
     save_figure_safely(
         fig,
         fig_dir / "fig5_llm_sentiment_by_area.png",
-        f"Nguồn: Inside Airbnb ({city}), mốc {last_snap} (mẫu LLM n={int(df_plot['so_binh_luan_mau'].sum())}).{note}",
+        f"Nguồn: Inside Airbnb ({city}), mẫu LLM cố định n={int(df_plot['so_binh_luan_mau'].sum())} (review đến 2025-09-13). "
+        "Cảnh báo: Tỷ lệ Positive có thể cao hơn thực tế do LLM bỏ sót 50% (9/18) mẫu Mixed trên tập kiểm thử; tổng mẫu Negative chỉ có 11 lượt.",
     )
 
 def plot_fig6_llm_aspects_diverging(df_kpi6: pd.DataFrame, fig_dir: Path, city: str = "", last_snap: str = "") -> None:
@@ -553,7 +556,7 @@ def plot_fig6_llm_aspects_diverging(df_kpi6: pd.DataFrame, fig_dir: Path, city: 
     save_figure_safely(
         fig,
         fig_dir / "fig6_llm_aspects_diverging.png",
-        f"Nguồn: Inside Airbnb ({city}), mốc chụp {last_snap} (trích xuất LLM, n={n_reviews:,}).",
+        f"Nguồn: Inside Airbnb ({city}), trích xuất LLM trên tập mẫu đánh giá cố định (n={n_reviews:,}, review đến 2025-09-13).",
     )
 
 def load_geojson(geojson_path: Path) -> dict | None:
@@ -592,7 +595,7 @@ def plot_fig7_price_map(
     norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
     cmap = matplotlib.colormaps["viridis"]
 
-    fig, ax = plt.subplots(figsize=(8.5, 7))
+    fig, ax = plt.subplots(figsize=(9.5, 5.8))
     patches, facecolors, all_lats = [], [], []
     for feat in geojson.get("features", []):
         name = (feat.get("properties") or {}).get("neighbourhood")
@@ -611,7 +614,7 @@ def plot_fig7_price_map(
     collection = PatchCollection(patches, facecolor=facecolors, edgecolor="white", linewidth=0.6)
     ax.add_collection(collection)
     ax.autoscale_view()
-    ax.set_aspect(1 / math.cos(math.radians(sum(all_lats) / len(all_lats))))
+    ax.set_aspect(1 / math.cos(math.radians(sum(all_lats) / len(all_lats))), adjustable="box")
     ax.set_xlabel("Kinh độ")
     ax.set_ylabel("Vĩ độ")
 

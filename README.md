@@ -30,7 +30,7 @@ Quy trình xử lý dữ liệu tự động (data pipeline) phân tích thị t
 ├── figures/                      # Các biểu đồ sinh tự động phục vụ báo cáo
 ├── reports/                      # Báo cáo PDF cuối kỳ, qa_report.csv, llm_eval_report.csv...
 ├── run_pipeline.py               # Kịch bản điều phối chạy toàn bộ quy trình bằng 1 lệnh
-├── .python-version               # Phiên bản Python đã kiểm thử (3.12.3)
+├── .python-version               # Phiên bản Python đã kiểm thử (3.13.12)
 ├── .env.example                  # Mẫu khai báo biến môi trường GEMINI_API_KEY
 ├── .gitignore                    # Loại trừ data/raw/, .venv/, .env khỏi Git
 ├── requirements.txt              # Danh sách thư viện đã ghim phiên bản (==)
